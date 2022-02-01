@@ -1,0 +1,10 @@
+cvxpy==1.1.15
+flax==0.3.4
+numpy==1.21.5
+
+plumber-analysis-mkuchnik @ file:///home/mkuchnik_andrew_cmu_edu/tfplumber_app/example_pipelines/TF2_Simple/plumber_analysis/dist/plumber_analysis_mkuchnik-0.0.1-py3-none-any.whl
+tensorflow @ file:///home/mkuchnik_andrew_cmu_edu/tensorflow-2.7.0-cp37-cp37m-linux_x86_64.whl
+
+--find-links https://storage.googleapis.com/jax-releases/libtpu_releases.html
+jax[tpu]==0.2.19
+jaxlib==0.1.70

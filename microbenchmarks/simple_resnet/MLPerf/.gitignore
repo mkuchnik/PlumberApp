@@ -1,0 +1,5 @@
+*.txt
+logdir/
+*.zip
+*.tar.*
+__pycache__

@@ -1,0 +1,6 @@
+flax==0.3.4
+numpy==1.21.5
+
+--find-links https://storage.googleapis.com/jax-releases/libtpu_releases.html
+jax[tpu]==0.2.19
+jaxlib==0.1.70

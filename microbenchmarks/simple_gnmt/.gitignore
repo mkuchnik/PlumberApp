@@ -1,0 +1,3 @@
+*.txt
+dataset_scripts/data
+__pycache__

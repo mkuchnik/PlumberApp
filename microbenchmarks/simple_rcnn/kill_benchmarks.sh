@@ -1,0 +1,1 @@
+ps aux | grep python | grep -v "grep python benchmark_mlperf.py" | awk '{print $2}' | xargs kill -9
