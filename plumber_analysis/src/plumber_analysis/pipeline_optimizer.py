@@ -61,6 +61,14 @@ def get_element_spec(graphdef):
     return element_spec
 
 def instantiate_pipeline(graphdef):
+    if not tf.executing_eagerly():
+        # TODO(mkuchnik): Remove
+        NotImplementedError("Instantiating pipeline in graph mode is not "
+                            "supported. Try enabling eager execution.")
+        # NOTE(mkuchnik): We disable here because graph-mode doesn't know how to
+        # instantiate the ResumeDataset.
+        # TODO(mkuchnik): Try implementing with
+        # tf.graph_util.import_graph_def(graphdef) or similar API
     element_spec = get_element_spec(graphdef)
     ds = _instantiate_pipeline(graphdef, element_spec)
     return ds

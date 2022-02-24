@@ -26,6 +26,32 @@ import plumber_analysis.machine_info
 
 PARAMS_FILENAME = "params.p"
 
+def graph_wrapped_benchmark_dataset(dataset, time_limit_s):
+    # NOTE(mkuchnik): Wrapping benchmark_dataset variants naively
+    # causes StatefulPartitionedCall to be returned. Instead, we dynamically
+    # dispatch to a custom graph-mode benchmark in this function.
+    # Note that this function still requires 'dataset' to be TF1 compatible.
+    ret = gen_util.benchmark_dataset_fn(dataset, time_limit_s=time_limit_s)
+    return ret
+
+def _benchmark_dataset(dataset, time_limit_s):
+    """Internal helper for dispatching to correct benchmark"""
+    if gen_util.is_dataset_closure(dataset):
+        # NOTE(mkuchnik): Currently, closures take longer to bench
+        logging.info("Closure benchmarking used. Expect it to be slower.")
+        ret = gen_util.benchmark_dataset_fn(dataset, time_limit_s=time_limit_s)
+    else:
+        if tf.executing_eagerly():
+            logging.info("Eager dataset benchmarking used.")
+            ret = gen_util.benchmark_dataset(dataset, time_limit_s=time_limit_s)
+        else:
+            logging.info("Graph-mode dataset benchmarking used.")
+            ret = graph_wrapped_benchmark_dataset(
+                dataset, time_limit_s=time_limit_s)
+            logging.info("Recieved {} from benchmark:\n{}".format(type(ret),
+                                                                ret))
+    return ret
+
 def create_optimizer():
     """Creates an optimizer using machine info and a stats filename.
 
@@ -132,7 +158,8 @@ def step_par_2(apply_cache=True, num_steps=None, load_parameter_cache=False,
     else:
         if not is_fast:
             logging.info("Calibrating Source Parallelism")
-            optimizer = calibrate_source_parallelisms(optimizer, override_presets=True, sweep_range=None)
+            optimizer = calibrate_source_parallelisms(
+                optimizer, override_presets=True, sweep_range=None)
     record_event("optimizer_calibrate_time") # 70s
     G = optimizer.networkx()
     nx.drawing.nx_pydot.write_dot(G, "networkx_init.dot")
@@ -175,7 +202,7 @@ def sweep():
     for f in sweep_range:
         optimizer = f()
         dataset = optimizer.instantiate_pipeline()
-        gen_util.benchmark_dataset(dataset, time_limit_s=62)
+        _benchmark_dataset(dataset, time_limit_s=62)
 
 def apply_tracing(dataset):
     options = tf.data.Options()
@@ -196,8 +223,12 @@ def apply_default_options(dataset, override_presets, apply_tracing=True):
         # TODO(mkuchnik): Do this in a subsequent optimization pass, by taking the min rate
         # and extrapolating from LP rate
         options.experimental_threading.private_threadpool_size = multiprocessing.cpu_count()
-    dataset = dataset.with_options(options)
-    return dataset
+    if gen_util.is_dataset_closure(dataset):
+        dataset_closure = lambda: dataset().with_options(options)
+        return dataset_closure
+    else:
+        dataset = dataset.with_options(options)
+        return dataset
 
 def plumber_find_best_pipeline():
     env_key = "PLUMBER_FIND_BEST_PIPELINE"
@@ -233,7 +264,9 @@ def plumber_no_optimize():
     env_key = "PLUMBER_NO_OPTIMIZE"
     return find_bool_env_key(env_key, False)
 
-def get_optimized_pipeline(dataset, override_presets=True, return_test_dataset=False, return_rate=False, use_parameter_cache=False, return_optimizer=False):
+def get_optimized_pipeline(dataset, override_presets=True,
+                           return_test_dataset=False, return_rate=False,
+                           use_parameter_cache=False, return_optimizer=False):
     """Given a dataset, automatically applies plumber optimizations to it"""
     # TODO(mkuchnik): Seperate optimization pass
     # TODO(mkuchnik): Factor out environment getting code
@@ -270,7 +303,7 @@ def get_optimized_pipeline(dataset, override_presets=True, return_test_dataset=F
 
     logging.info("Running preliminary benchmark")
     dataset = apply_default_options(dataset, override_presets)
-    ret = gen_util.benchmark_dataset(dataset, time_limit_s=12)
+    ret = _benchmark_dataset(dataset, time_limit_s=12)
     logging.info("End preliminary benchmark")
     logging.info("benchmark {}".format(ret))
 
@@ -310,7 +343,7 @@ def get_optimized_pipeline(dataset, override_presets=True, return_test_dataset=F
 
 def get_fake_pipeline(dataset, override_presets=True):
     dataset = apply_default_options(dataset, override_presets)
-    ret = gen_util.benchmark_dataset(dataset, time_limit_s=12)
+    ret = _benchmark_dataset(dataset, time_limit_s=12)
     logging.info("benchmark {}".format(ret))
     optimizer = create_optimizer()
     dataset = optimizer.fake_dataset()
@@ -318,13 +351,16 @@ def get_fake_pipeline(dataset, override_presets=True):
 
 def get_source_pipeline(dataset, override_presets=True):
     dataset = apply_default_options(dataset, override_presets)
-    ret = gen_util.benchmark_dataset(dataset, time_limit_s=12)
+    ret = _benchmark_dataset(dataset, time_limit_s=12)
     logging.info("benchmark {}".format(ret))
     optimizer = create_optimizer()
     dataset = optimizer.source_dataset()
     return dataset
 
-def get_sweep_source_pipeline_parallelisms(optimizer, sweep_range=None, override_presets=True, max_log_parallelism=None):
+def get_sweep_source_pipeline_parallelisms(optimizer, sweep_range=None,
+                                           override_presets=True,
+                                           max_log_parallelism=None,
+                                           return_closure=False):
     """Returns a sweep of datasets (tuples of parallelism and dataset)
     to be used for source benchmarking"""
     if max_log_parallelism is None:
@@ -350,19 +386,32 @@ def get_sweep_source_pipeline_parallelisms(optimizer, sweep_range=None, override
         assert num_source_nodes == 1, "Expected 1 source node"
         _optimizer = optimizer.fork()
         _optimizer.set_parallelism(curr_parallelism)
-        dataset = _optimizer.source_dataset()
-        dataset = apply_default_options(dataset, override_presets)
-        datasets.append(dataset)
+        def dataset_fn():
+            dataset = _optimizer.source_dataset()
+            dataset = apply_default_options(dataset, override_presets)
+            return dataset
+        if return_closure:
+            ds = dataset_fn
+        else:
+            ds = dataset_fn()
+        datasets.append(ds)
     return zip(sweep_range, datasets), source_nodes[0]
 
-def _benchmark_source_parallelisms(optimizer, override_presets=True, sweep_range=None):
+def _benchmark_source_parallelisms(optimizer, override_presets=True,
+                                   sweep_range=None, return_closure=False):
     source_sweep, source_node = get_sweep_source_pipeline_parallelisms(
-            optimizer, sweep_range=sweep_range, override_presets=override_presets)
+        optimizer, sweep_range=sweep_range,
+        override_presets=override_presets,
+        return_closure=return_closure,
+    )
 
     rets = []
     for p, d in source_sweep:
-        dd = d.prefetch(10)
-        ret = gen_util.benchmark_dataset(d, time_limit_s=gen_util.AUTOTUNE)
+        if return_closure:
+            dd = lambda: d().prefetch(10)
+        else:
+            dd = d.prefetch(10)
+        ret = _benchmark_dataset(d, time_limit_s=gen_util.AUTOTUNE)
         rets.append((p, ret))
 
     return rets, source_node
@@ -370,16 +419,20 @@ def _benchmark_source_parallelisms(optimizer, override_presets=True, sweep_range
 def benchmark_source_parallelisms(dataset, override_presets=True, sweep_range=None):
     """Sweeps a range of parallelism and report benchmark rates"""
     dataset = apply_default_options(dataset, override_presets, apply_tracing=False)
-    ret = gen_util.benchmark_dataset(dataset, time_limit_s=12)
+    ret = _benchmark_dataset(dataset, time_limit_s=12)
     logging.info("benchmark {}".format(ret))
     optimizer = create_optimizer()
-    rets, _ = _benchmark_source_parallelisms(optimizer, override_presets, sweep_range)
+    rets, _ = _benchmark_source_parallelisms(
+        optimizer, override_presets, sweep_range,
+        return_closure=not tf.executing_eagerly())
     return rets
 
 def calibrate_source_parallelisms(optimizer, override_presets=True, sweep_range=None, add_zeros=False):
     """Does a sweep over source node parallelisms and adds this metadata to the optimizer"""
     try:
-        rets, source_node = _benchmark_source_parallelisms(optimizer, override_presets, sweep_range)
+        rets, source_node = _benchmark_source_parallelisms(
+            optimizer, override_presets, sweep_range,
+            return_closure=not tf.executing_eagerly())
     except RuntimeError as ex:
         logging.error(ex)
         return optimizer
@@ -423,12 +476,14 @@ def get_best_optimized_pipeline(datasets, override_presets=True, double_test=Fal
     estimated_rates = []
     opt_datasets = []
     for p in datasets:
-        opt_p, opt_p_test, rate, optimizer = get_optimized_pipeline(p, override_presets, return_test_dataset=True, return_rate=True, return_optimizer=True)
+        opt_p, opt_p_test, rate, optimizer = get_optimized_pipeline(
+            p, override_presets, return_test_dataset=True, return_rate=True,
+            return_optimizer=True)
         estimated_rate = optimizer.estimated_rate
         estimated_rates.append(estimated_rate)
         opt_datasets.append(opt_p)
         if double_test:
-            ret = gen_util.benchmark_dataset(opt_p_test, time_limit_s=gen_util.AUTOTUNE)
+            ret = _benchmark_dataset(opt_p_test, time_limit_s=gen_util.AUTOTUNE)
             rates.append(ret["global_minibatch_rate"])
         else:
             rates.append(rate)
@@ -442,29 +497,18 @@ def get_best_optimized_pipeline(datasets, override_presets=True, double_test=Fal
 
 
 def optimize_default():
+    """Used to test optimizer"""
     optimizer = create_optimizer()
-    #optimizer.roofline("roofline.pdf", ylim="all")
-    #print(optimizer.roofline("roofline.pdf"))
     logging.info(optimizer.roofline())
-    #print(optimizer.all_N_stats())
-    #optimizer.disable_inter_op_parallelism()
     optimizer.apply_optimizations(benchmark_time_s=22, inner_benchmarking=False,
                                   num_optimization_passes=3,
                                   rebench=True)
     dataset = optimizer.instantiate_pipeline()
-    #print(optimizer.roofline("roofline_opt.pdf"))
-    gen_util.benchmark_dataset(dataset, time_limit_s=62)
-    #
-    #options = tf.data.Options()
-    #gen_util.add_analysis_to_dataset_options(options)
-    #dataset = dataset.with_options(options)
-    #print("Benchmarking")
-    #print("*" * 80)
-    #gen_util.drop_caches()
-    #gen_util.benchmark_dataset(dataset, time_limit_s=22)
+    _benchmark_dataset(dataset, time_limit_s=62)
+
 
 def main():
-    #optimize_default()
+    """More tests"""
     sweep()
 
 if __name__ == "__main__":

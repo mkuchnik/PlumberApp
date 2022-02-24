@@ -8,41 +8,29 @@ into Plumber functionality and has the most up-to-date view into configurations.
 import functools
 import logging
 import time
+import itertools
 
 import tensorflow as tf
-from plumber_analysis import pipeline_optimizer_wrapper, config
+from plumber_analysis import pipeline_optimizer_wrapper, config, gen_util
 
 # TODO(mkuchnik): Disable plumber logging
 # https://stackoverflow.com/questions/35325042/python-logging-disable-logging-from-imported-modules
 
-# TODO(mkuchnik): Add decorators to
-# 1) check that triaining is enabled and 2) check that element_spec is identical
-def condition(pre_condition=None, post_condition=None):
-    """
-    A pre or pos-condition
-    https://stackoverflow.com/questions/12151182/python-precondition-postcondition-for-member-function-how
-    """
-    def decorator(func):
-        @functools.wraps(func) # presever name, docstring, etc
-        def wrapper(*args, **kwargs): #NOTE: no self
-            if pre_condition is not None:
-               assert pre_condition(*args, **kwargs)
-            retval = func(*args, **kwargs) # call original function or method
-            if post_condition is not None:
-               assert post_condition(retval)
-            return retval
-        return wrapper
-    return decorator
+_TF1_SUPPORT_MSG = \
+"""TF1 not supported currently. Trace the pipeline with TF1 or optimize it as a TF2 program."""
 
-def pre_condition(check):
-    return condition(pre_condition=check)
+def _is_eager_mode() -> bool:
+    return tf.executing_eagerly()
 
-def post_condition(check):
-    return condition(post_condition=check)
+
+def _is_graph_mode() -> bool:
+    return not _is_eager_mode()
+
 
 def _check_environment_for_errors():
-    if not tf.executing_eagerly():
-        logging.error("Eager execution not enabled. TF1 API support isn't well-tested.")
+    if _is_graph_mode():
+        logging.error("Eager execution not enabled. TF1 API support isn't"
+                      " well-tested. Prefer to run code in TF2.")
 
 def _maybe_patch_element_spec(new_dataset, dataset):
     """Checks that new_dataset follows the element_spec. If not, attempts to fix it."""
@@ -82,7 +70,23 @@ def _maybe_patch_element_spec(new_dataset, dataset):
                                curr_element_spec, new_dataset_element_spec))
     return new_dataset
 
-def optimize_pipeline(kwargs_precondition_f=None, use_parameter_cache=False):
+
+def _dispatch_kwargs_precondition_f(kwargs_precondition_f, args, kwargs):
+    num_args = gen_util.num_closure_args(kwargs_precondition_f)
+    if num_args == 1:
+        params = [kwargs]
+    elif num_args == 2:
+        params = [args, kwargs]
+    else:
+        raise ValueError("Was expecting 1-2 args for kwargs_precondition_f. Got: {}".format(
+            num_args))
+    return kwargs_precondition_f(*params)
+
+
+def optimize_pipeline(kwargs_precondition_f=None,
+                      use_parameter_cache=False,
+                      return_closure=False,
+                      force_closure_tracing=False):
     """
     Wraps and optimizes a loader function. If kwargs_precondition_f is True, runs optimizer.
 
@@ -96,45 +100,77 @@ def optimize_pipeline(kwargs_precondition_f=None, use_parameter_cache=False):
         # ... build closure for dataset with dataset_fn
         return dataset_fn
     """
+    return _optimize_pipeline(kwargs_precondition_f,
+                              use_parameter_cache,
+                              return_closure,
+                              force_closure_tracing)
+
+
+def _optimize_pipeline(kwargs_precondition_f,
+                       use_parameter_cache,
+                       return_closure,
+                       force_closure_tracing):
+    """Decorator logic"""
+    graph_mode = _is_graph_mode()
+    if graph_mode:
+        if return_closure is None:
+            return_closure = True
+        logging.info("Graph mode execution detected")
+    else:
+        if return_closure is None:
+            return_closure = False
+        logging.info("Eager mode execution detected")
     def inner_decorator(loader_fn):
         # TODO(mkuchnik): Wrap with LRU cache to avoid re-computing if the arguments are the same
         @functools.wraps(loader_fn)
         def wrapper(*args, **kwargs):
-            _check_environment_for_errors()
-            start_time = time.perf_counter()
-            dataset = loader_fn(*args, **kwargs)
-            logging.info("OPTIMIZE PIPELINE ENTER WITH DATASET: {} ({})".format(
-                dataset, id(dataset)))
-            if pipeline_optimizer_wrapper.plumber_fake_pipeline():
-                new_dataset = pipeline_optimizer_wrapper.get_fake_pipeline(dataset)
-                logging.warning("USING FAKE DATASET")
-            elif kwargs_precondition_f:
-                if kwargs_precondition_f(kwargs):
-                    new_dataset = pipeline_optimizer_wrapper.get_optimized_pipeline(
-                        dataset, override_presets=True,
-                        return_test_dataset=False, return_rate=False,
-                        use_parameter_cache=use_parameter_cache)
+            def _wrapper():
+                _check_environment_for_errors()
+                if _is_graph_mode():
+                    raise NotImplementedError(_TF1_SUPPORT_MSG)
+                start_time = time.perf_counter()
+                dataset_fn = lambda: loader_fn(*args, **kwargs)
+                dataset = dataset_fn()
+                logging.info("OPTIMIZE PIPELINE ENTER WITH DATASET: {} ({}).\nArgs: {} KwArgs: {}".format(
+                    dataset, hex(id(dataset)), args, kwargs))
+                if graph_mode or force_closure_tracing:
+                    logging.info("Using closure rather than dataset")
+                    new_dataset_fn = lambda: pipeline_optimizer_wrapper.get_optimized_pipeline(
+                                    dataset_fn, override_presets=True,
+                                    return_test_dataset=False, return_rate=False,
+                                    use_parameter_cache=use_parameter_cache)
                 else:
-                    logging.info("Precondition failed! Passing through dataset.")
-                    new_dataset = dataset
-            else:
-                new_dataset = pipeline_optimizer_wrapper.get_optimized_pipeline(
-                        dataset, override_presets=True,
-                    return_test_dataset=False, return_rate=False,
-                    use_parameter_cache=use_parameter_cache)
-            end_time = time.perf_counter()
-            elapsed_time = end_time - start_time
-            logging.info("OPTIMIZE PIPELINE END: {} seconds".format(elapsed_time))
+                    new_dataset_fn = lambda: pipeline_optimizer_wrapper.get_optimized_pipeline(
+                                    dataset, override_presets=True,
+                                    return_test_dataset=False, return_rate=False,
+                                    use_parameter_cache=use_parameter_cache)
+                if pipeline_optimizer_wrapper.plumber_fake_pipeline():
+                    new_dataset = pipeline_optimizer_wrapper.get_fake_pipeline(dataset)
+                    logging.warning("USING FAKE DATASET")
+                elif kwargs_precondition_f:
+                    if _dispatch_kwargs_precondition_f(kwargs_precondition_f, args, kwargs):
+                        new_dataset = new_dataset_fn()
+                    else:
+                        logging.info("Precondition failed! Passing through dataset.")
+                        new_dataset = dataset
+                else:
+                    new_dataset = new_dataset_fn()
+                end_time = time.perf_counter()
+                elapsed_time = end_time - start_time
+                logging.info("OPTIMIZE PIPELINE END: {} seconds".format(elapsed_time))
 
-            new_dataset = _maybe_patch_element_spec(new_dataset, dataset)
-            logging.info("OPTIMIZE PIPELINE EXIT WITH DATASET: {} ({})".format(
-                new_dataset, id(new_dataset)))
-
-            return new_dataset
+                new_dataset = _maybe_patch_element_spec(new_dataset, dataset)
+                logging.info("OPTIMIZE PIPELINE EXIT WITH DATASET: {} ({})".format(
+                    new_dataset, id(new_dataset)))
+                return new_dataset
+            return _wrapper if return_closure else _wrapper()
         return wrapper
     return inner_decorator
 
-def maybe_optimize_pipeline(kwargs_precondition_f=None, use_parameter_cache=False):
+def maybe_optimize_pipeline(kwargs_precondition_f=None,
+                            use_parameter_cache=False,
+                            return_closure=False,
+                            force_closure_tracing=False):
     """
     Wraps and optimizes a loader function. If kwargs_precondition_f is True, runs optimizer.
     Doesn't optimize the pipeline unless instructed by environment variables.
@@ -150,52 +186,24 @@ def maybe_optimize_pipeline(kwargs_precondition_f=None, use_parameter_cache=Fals
         # ... build closure for dataset with dataset_fn
         return dataset_fn
     """
-    def inner_decorator(loader_fn):
-        @functools.wraps(loader_fn)
-        def wrapper(*args, **kwargs):
-            _check_environment_for_errors()
-            start_time = time.perf_counter()
-            dataset = loader_fn(*args, **kwargs)
-            logging.info("OPTIMIZE PIPELINE ENTER WITH DATASET: {} ({})".format(
-                dataset, id(dataset)))
-            if pipeline_optimizer_wrapper.plumber_fake_pipeline():
-                new_dataset = pipeline_optimizer_wrapper.get_fake_pipeline(dataset)
-                logging.warning("USING FAKE DATASET")
-            elif pipeline_optimizer_wrapper.plumber_optimize_pipeline():
-                if kwargs_precondition_f:
-                    if kwargs_precondition_f(kwargs):
-                        new_dataset = pipeline_optimizer_wrapper.get_optimized_pipeline(
-                            dataset, override_presets=True,
-                            return_test_dataset=False, return_rate=False,
-                            use_parameter_cache=use_parameter_cache)
-                    else:
-                        logging.info("Precondition failed! Passing through dataset.")
-                        new_dataset = dataset
-                else:
-                    new_dataset = pipeline_optimizer_wrapper.get_optimized_pipeline(
-                        dataset, override_presets=True,
-                        return_test_dataset=False, return_rate=False,
-                        use_parameter_cache=use_parameter_cache)
-            else:
-                logging.info("Optimization not enabled! Passing through dataset.")
-                new_dataset = dataset
-            end_time = time.perf_counter()
-            elapsed_time = end_time - start_time
-            logging.info("OPTIMIZE PIPELINE END: {} seconds".format(elapsed_time))
+    def env_variable_optimize_check():
+        should_optimize = pipeline_optimizer_wrapper.plumber_optimize_pipeline()
+        if not should_optimize:
+            logging.info("Optimization not enabled! Passing through dataset.")
+        return should_optimize
+    def wrapped_kwargs_precondition_f(kwargs):
+        return env_variable_optimize_check() and kwargs_precondition_f(kwargs)
 
-            new_dataset = _maybe_patch_element_spec(new_dataset, dataset)
-            logging.info("OPTIMIZE PIPELINE EXIT WITH DATASET: {} ({})".format(
-                new_dataset, id(new_dataset)))
-
-            return new_dataset
-        return wrapper
-    return inner_decorator
+    return _optimize_pipeline(
+        kwargs_precondition_f=wrapped_kwargs_precondition_f,
+        use_parameter_cache=use_parameter_cache,
+        return_closure=return_closure,
+        force_closure_tracing=force_closure_tracing)
 
 
 def expand_grid_combinations(arg_grid_dict):
     """All possible value combinations with keys"""
     # https://stackoverflow.com/questions/38721847/how-to-generate-all-combination-from-values-in-dict-of-lists-in-python
-    import itertools
     keys, values = zip(*arg_grid_dict.items())
     values = list(map(lambda v: [v] if not isinstance(v, list) else v, values))
     permutations_dicts = [dict(zip(keys, v)) for v in itertools.product(*values)]
@@ -227,6 +235,8 @@ def maybe_find_best_pipeline(kwargs_precondition_f=None, optimization_arg_grid=N
         @functools.wraps(loader_fn)
         def wrapper(*args, **kwargs):
             _check_environment_for_errors()
+            if _is_graph_mode():
+                raise NotImplementedError(_TF1_SUPPORT_MSG)
             start_time = time.perf_counter()
             dataset = loader_fn(*args, **kwargs)
             logging.info("OPTIMIZE PIPELINE ENTER WITH DATASET: {} ({})".format(
@@ -275,6 +285,7 @@ def maybe_find_best_pipeline(kwargs_precondition_f=None, optimization_arg_grid=N
             return new_dataset
         return wrapper
     return inner_decorator
+
 
 def trace_pipeline(kwargs_precondition_f=None):
     """

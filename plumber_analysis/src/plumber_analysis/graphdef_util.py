@@ -5,6 +5,8 @@ import graphsurgeon
 import copy
 from collections import deque
 import pprint
+import difflib
+import string
 
 import logging
 
@@ -135,12 +137,50 @@ def find_datasets_in_f(graph_def, f_name, datasets=None):
   return datasets
 
 def find_function_by_name(graph_def, f_name):
+    non_ascii_chars = "".join([c for c in f_name if not c.isascii()])
+    contains_newlines = "\n" in f_name
+    is_printable = f_name.isprintable()
+    if contains_newlines or non_ascii_chars:
+        name_summary = {
+            "non_ascii_chars": non_ascii_chars,
+            "contains_newlines": contains_newlines,
+            "is_printable": is_printable,
+        }
+        raise ValueError("Invalid characters in function name: '{}'. Full"
+                         " summary:\n{}".format(
+            f_name, pprint.pformat(name_summary)
+        ))
+    def strip_nonprint_characters(a_str):
+        # https://stackoverflow.com/questions/92438/stripping-non-printable-characters-from-a-string-in-python
+        return "".join(filter(lambda c: c in string.printable, a_str))
     for f in graph_def.library.function:
         if f.signature.name == f_name:
             return f
+    f_name_cleaned = strip_nonprint_characters(f_name)
+    nonprint_chars = set(f_name) - set(f_name_cleaned)
+    logging.debug("f_name: {} failed to by found. Removing bad"
+                    " characters:\n'{}'".format(f_name,
+                                              pprint.pformat(nonprint_chars)))
+    for f in graph_def.library.function:
+        if strip_nonprint_characters(f.signature.name) == f_name_cleaned:
+            return f
+    # Failure
+    # NOTE(mkuchnik): Failures are often caused because invisible characters
+    # failed to be stripped by the function_name heuristics
+    fnames = [f.signature.name for f in graph_def.library.function]
+    close_matches = difflib.get_close_matches(f_name, fnames)
+    d = difflib.Differ()
+    close_diffs = list(
+        map(lambda x: list(d.compare(f_name, x)), close_matches)
+    )
     raise RuntimeError(
-        "Expected to find 1 node for {}, but found {}".format(
-        f_name, 0))
+        "Expected to find 1 node for '{}', but found {}."
+        " Close matches:\n{}\nDiffs{}".format(
+            f_name,
+            0,
+            ",".join(["'{}'".format(w) for w in close_matches]),
+            pprint.pformat(close_diffs),
+        ))
 
 def find_functions_of_node(graph_def, surgeon_node):
     fs = []
@@ -151,6 +191,9 @@ def find_functions_of_node(graph_def, surgeon_node):
             key_f_str = key_f.SerializeToString().decode()
             key_f_str = key_f_str.strip("\n")
             key_f_str = key_f_str[1:]
+            if "\n" in key_f_str:
+                # NOTE(mkuchnik): Heuristically pick the first value
+                key_f_str = key_f_str.split("\n")[0]
             f = find_function_by_name(graph_def, key_f_str)
             fs.append(f)
     elif (surgeon_node.op == "ParallelInterleaveDatasetV4" or
@@ -163,6 +206,9 @@ def find_functions_of_node(graph_def, surgeon_node):
             key_f_str = key_f_str.strip("\n")
             # TODO(mkuchnik): For some reason, encoding adds "\nF" or "\nA" etc.
             key_f_str = key_f_str[1:]
+            if "\n" in key_f_str:
+                # NOTE(mkuchnik): Heuristically pick the first value
+                key_f_str = key_f_str.split("\n")[0]
             f = find_function_by_name(graph_def, key_f_str)
             fs.append(f)
     elif (surgeon_node.op == "FilterDataset"):

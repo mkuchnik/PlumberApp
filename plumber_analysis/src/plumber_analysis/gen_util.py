@@ -12,10 +12,33 @@ import subprocess
 import os
 import threading
 import logging
+import inspect
 
 from plumber_analysis import statistics_collection
 
 AUTOTUNE = -1
+
+def is_dataset_closure(dataset) -> bool:
+    """Checks if a 0-arg closure of a Dataset"""
+    if callable(dataset):
+        sig = inspect.signature(dataset)
+        if len(sig.parameters):
+            raise ValueError("Only 0-argument closures are allowed. Found:\n{}".format(
+                sig.parameters))
+        return True
+    elif isinstance(dataset, tf.data.Dataset):
+        return False
+    else:
+        raise ValueError("Unknown type: {}".format(type(dataset)))
+
+
+def num_closure_args(closure) -> int:
+    """Checks if a 0-arg closure of a Dataset"""
+    if not callable(closure):
+        raise ValueError("Closure must be a closure: {}".format(closure))
+    sig = inspect.signature(closure)
+    return len(sig.parameters)
+
 
 def default_element_count_f(data) -> int:
     """Assumes first dimension is batch size
@@ -30,8 +53,10 @@ def default_element_count_f(data) -> int:
     else:
         return len(data)
 
+
 def scalar_element_count_f(data) -> int:
     return 1
+
 
 def add_analysis_to_dataset_options(options, hard_fail: bool=False,
                                     stats_filename="stats.pb",
@@ -79,7 +104,7 @@ class AutotuneState(object):
     def should_terminate(self) -> bool:
         return self.past_rate_offset and self.error_converged()
 
-@tf.function
+
 def benchmark_dataset_fn(dataset_fn, element_count_f=None, warmup:bool=False,
                          time_limit_s: int=None,
                          print_perf: bool=True, profile_interval: int=10,
@@ -89,23 +114,44 @@ def benchmark_dataset_fn(dataset_fn, element_count_f=None, warmup:bool=False,
                          num_compute_accelerators: int=None,
                          min_time_limit_s: int=None,
                          max_time_limit_s: int=None):
-    """Useful for graph-mode"""
-    dataset = dataset_fn()
-    kwargs = {"dataset": dataset,
-              "element_count_f": element_count_f,
-              "warmup": warmup,
-              "time_limit_s": time_limit_s,
-              "print_perf": print_perf,
-              "profile_interval": profile_interval,
-              "skip_first_n": skip_first_n,
-              "lean_bench": lean_bench,
-              "return_monitoring_data": return_monitoring_data,
-              "compute_time_s": compute_time_s,
-              "num_compute_accelerators": num_compute_accelerators,
-              "min_time_limit_s": min_time_limit_s,
-              "max_time_limit_s": max_time_limit_s,
-            }
-    return _benchmark_dataset(**kwargs)
+    """Useful for graph-mode. Will dispatch to a primitive benchmark """
+    if tf.executing_eagerly():
+        dataset = dataset_fn()
+        kwargs = {"dataset": dataset,
+                  "element_count_f": element_count_f,
+                  "warmup": warmup,
+                  "time_limit_s": time_limit_s,
+                  "print_perf": print_perf,
+                  "profile_interval": profile_interval,
+                  "skip_first_n": skip_first_n,
+                  "lean_bench": lean_bench,
+                  "return_monitoring_data": return_monitoring_data,
+                  "compute_time_s": compute_time_s,
+                  "num_compute_accelerators": num_compute_accelerators,
+                  "min_time_limit_s": min_time_limit_s,
+                  "max_time_limit_s": max_time_limit_s,
+                }
+        return _benchmark_dataset(**kwargs)
+    else:
+        _ds = dataset_fn()
+        logging.warning("Using limited capability graph-mode benchmark with "
+                        "{}".format(_ds))
+        if min_time_limit_s is None:
+            min_time_limit_s = 12
+        global_minibatch_rate = _benchmark_dataset_graphmode(
+            dataset_fn=dataset_fn, time_limit_s=time_limit_s,
+            min_time_limit_s=min_time_limit_s,
+        )
+        global_element_rate = None
+        data_load_times = None
+        logging.info("mean minibatch rate: {} minibatch/sec".format(
+            global_minibatch_rate))
+        summary = {
+            "global_element_rate": global_element_rate,
+            "global_minibatch_rate": global_minibatch_rate,
+            "data_load_times": data_load_times,
+        }
+        return summary
 
 def benchmark_dataset(*args, **kwargs):
     return _benchmark_dataset(*args, **kwargs)
@@ -136,6 +182,73 @@ def benchmark_and_profile_dataset(*args, **kwargs):
     options = tf.profiler.experimental.ProfilerOptions()
     with tf.profiler.experimental.Profile('logdir', options=options):
         return _benchmark_dataset(*args, **kwargs)
+
+
+def _benchmark_dataset_graphmode(
+        dataset_fn, time_limit_s, min_time_limit_s):
+    """Severly limited version of benchmark_dataset used for running under
+    graph-mode."""
+    minibatches_produced = 0
+    if not is_dataset_closure(dataset_fn):
+        raise ValueError("Not a valid closure. Recieved "
+                         "{}".format(type(dataset_fn)))
+    graph = tf.compat.v1.Graph()
+    auto_state = AutotuneState()
+    with graph.as_default():
+        dataset = dataset_fn()
+        sess = tf.compat.v1.Session(graph=graph)
+        with sess.as_default() as sess:
+            iterator = tf.compat.v1.data.make_one_shot_iterator(dataset)
+            next_element = iterator.get_next()
+            start_time = tf.timestamp("start_time")
+            end_time = tf.timestamp("end_time")
+
+            sess.run(tf.compat.v1.global_variables_initializer())
+
+            # Warmup
+            try:
+                data = sess.run(next_element)
+            except tf.errors.OutOfRangeError as ex:
+                logging.error("Exception on warmup: {}".format(ex))
+                raise ex
+
+            # Start timers
+            _start_time = sess.run(start_time)
+            def elapsed_time_fn():
+                elapsed_time = end_time - _start_time
+                return elapsed_time
+            elapsed_time_tensor = elapsed_time_fn()
+
+            while True:
+                try:
+                    data = sess.run(next_element)
+                    minibatches_produced += 1
+                    elapsed_time = sess.run(elapsed_time_tensor)
+                    if minibatches_produced % 20 == 0:
+                        logging.info("Elapsed_time: {}".format(elapsed_time))
+                    if time_limit_s >= 0:
+                        if elapsed_time > time_limit_s:
+                            raise StopIteration("Out of time")
+                    else:
+                        if minibatches_produced % 10 == 0:
+                            global_minibatch_rate_tensor = (
+                                tf.cast(minibatches_produced, tf.float64) / elapsed_time)
+                            global_minibatch_rate = sess.run(global_minibatch_rate_tensor)
+                            auto_state.record_rate(global_minibatch_rate)
+                            if elapsed_time >= min_time_limit_s and auto_state.should_terminate():
+                                logging.info("AUTOTUNE converged (error {:.2}, time {:.2}, iterations {}):"
+                                         " Breaking benchmark".format(
+                                    auto_state.current_error(), elapsed_time, minibatches_produced))
+                except tf.errors.OutOfRangeError as ex:
+                    logging.info("Exception: {}".format(ex))
+                    break
+                except StopIteration as ex:
+                    logging.info("Exception: {}".format(ex))
+                    break
+            global_minibatch_rate_tensor = (
+                tf.cast(minibatches_produced, tf.float64) / elapsed_time)
+            global_minibatch_rate = sess.run(global_minibatch_rate_tensor)
+    return global_minibatch_rate
 
 def _benchmark_dataset(dataset, element_count_f=None, warmup:bool=False,
                        time_limit_s: int=None,
