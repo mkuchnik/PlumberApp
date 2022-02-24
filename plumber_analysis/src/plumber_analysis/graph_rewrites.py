@@ -785,9 +785,14 @@ def extract_theta_from_runtime_data(runtime_data):
     keys = ["Convex_Theta", "Convex_Theta_Existing"]
     thetas = dict()
     for k in keys:
-        v = runtime_data[k]
+        try:
+            v = runtime_data[k]
+        except KeyError as ex:
+            logging.error(ex)
+            raise KeyError(
+                "Failed to find key '{}' of keys '{}' in dict keys '{}'".format(
+                keys, k, runtime_data.keys()))
         thetas[k] = v
-        del runtime_data[k]
     return thetas
 
 def round_thetas_dict(thetas_dict):
