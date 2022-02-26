@@ -96,7 +96,7 @@ Briefly to build:
    setting the environment before running this part, so the paths are found automatically. The default options are fine, unless you are adding GPU support.
 3. Run the build. TPU build is shown below, since it's most complicated
    (requiring an extra `--config=tpu` flag). Note,
-   for TPU, you need a `libtpu.so` file to build against, which is distributed with JAX TPU Python packages. Otherwise, you can find them pre-installed on TPU machines under `/usr/lib/libtpu.so`. Set `N_JOBS` to the thread count you want to use for the build.
+   for TPU, you need a `libtpu.so` file to build against, which is distributed with JAX TPU Python packages. Otherwise, you can find them pre-installed on TPU machines under `/usr/lib/libtpu.so`. *Place `libtpu.so` in the Tensorflow source directory so it can be found during the build installation.* Set `N_JOBS` to the thread count you want to use for the build.
 ```bash
   bazel build \
     --config=opt \
@@ -106,6 +106,11 @@ Briefly to build:
     --verbose_failures \
     //tensorflow/tools/pip_package:build_pip_package
 ```
+
+If you get an error about something TPU related, it is almost always because
+there is some issue with finding the appropriate function calls in `libtpu.so`.
+You may have not placed `libtpu.so` in the Tensorflow directory if this is the
+case.
 
 If you don't use TPU, omit that config.
 ```bash
