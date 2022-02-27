@@ -398,7 +398,10 @@ We provide bash scripts which go through these permutations for the experiments.
 The microbenchmarks are CPU-only and are run as fast as they can go in a loop.
 The rate measured is therefore the maximum possible rate sustained by that
 pipeline under that configuration.
-These are run on Setup A and B.
+These are run on Setup A and B, and do not need to be build with `libtpu.so` for
+TPUs; a CPU-only Tensorflow build suffices.
+Note that you will still need to install `plumber_analysis` with the `install.sh` install
+script.
 
 To run these, we provide high level runner scripts, which you can run from the
 `microbenchmark` directory.
