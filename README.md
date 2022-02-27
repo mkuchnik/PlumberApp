@@ -52,7 +52,9 @@ The Tensorflow component of Plumber is just a fork of Plumber.
 Building Tensorflow from source is well described via [official
 documentation](https://www.tensorflow.org/install/source), but we summarize it
 below.
-It is useful to use [Bazelisk](https://docs.bazel.build/versions/main/install-bazelisk.html) to build Tensorflow.
+If you want to see how to just run some code, we provide the install [steps](#full-example-on-tpu) on TPU.
+
+It is useful to use [Bazelisk](https://docs.bazel.build/versions/main/install-bazelisk.html) to build Tensorflow (we can rename the file to `bazel`).
 The [`refresh_tf_build.sh`](https://github.com/mkuchnik/PlumberTensorflow/blob/main/refresh_tf_build.sh) script (and [TPU variant](https://github.com/mkuchnik/PlumberTensorflow/blob/main/refresh_tf_build_tpu.sh)) assumes it is in the Tensorflow directory,
 which is why it calls `./bazel` when building.
 Feel free to change this to something else if you placed `bazel` elsewhere.
