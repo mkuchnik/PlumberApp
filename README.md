@@ -197,6 +197,14 @@ pip install -U keras_preprocessing --no-deps
 
 # Build
 bash refresh_tf_build_tpu.sh
+
+# Exit Directory
+cd ..
+
+# Install Plumber App
+git clone https://github.com/mkuchnik/PlumberApp.git
+cd PlumberApp/plumber_analysis
+bash install.sh
 ```
 
 To test everything is working fine, start a python shell and import tensorflow.
