@@ -236,6 +236,11 @@ holding a lock on `libtpu.so`. You can try to find and kill it by killing all
 ps aux | grep python | grep -v "grep python" | awk '{print $2}' | xargs kill -9
 ```
 
+You can also try to find the process using `libtpu` with:
+```bash
+sudo lsof -w /dev/accel0
+```
+
 #### Manual Build 
 To build:
 
@@ -334,6 +339,11 @@ You can try to find and kill it by killing all
 
 ```bash
 ps aux | grep python | grep -v "grep python" | awk '{print $2}' | xargs kill -9
+```
+
+You can also try to find the process using `libtpu` with:
+```bash
+sudo lsof -w /dev/accel0
 ```
 
 
