@@ -146,19 +146,23 @@ To build:
 ##### Full Example on TPU
 
 ###### Initial Setup
-Install anaconda
+Install miniconda (as described above).
 ```bash
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh
 ```
 
-Add a python3.7 env.
+Add a Python3.7 env, `py37`.
 ```bash
 conda create python=3.7 -n py37
 ```
 
-You need to install libtpu.so from a nightly package.
+You need to install libtpu.so from a nightly package. *DO NOT INSTALL UNDER
+MINOCONDA*.
 ```bash
+conda deactivate # Get out of conda
+conda deactivate # Get out of conda
+conda deactivate # Get out of conda
 python3   -m pip install "jax[tpu]>=0.2.16" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
 sudo cp $HOME/.local/libtpu.so/libtpu.so /usr/lib/libtpu.so 
 ```
@@ -171,18 +175,22 @@ Assuming Miniconda is installed with `py37` environment and libtpu.so is the
 version you want to use:
 
 ```bash
+conda activate py37
 git clone --recurse-submodules https://github.com/mkuchnik/PlumberTensorflow.git
 cd PlumberTensorflow
-cp /usr/lib/libtpu.so .
+cp /usr/lib/libtpu.so .  # Copy libtpu version to Tensorflow for building
 
+# Install Dependencies
 sudo apt -y update
 sudo apt -y install python3-venv
 conda activate py37
-
 pip install -U pip numpy wheel
 pip install -U keras_preprocessing --no-deps
 
+# Default options are probably fine (make sure you see a path to miniconda)
 ./configure
+
+# Build
 bash refresh_tf_build_tpu.sh
 ```
 
