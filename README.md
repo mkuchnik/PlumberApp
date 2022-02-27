@@ -142,6 +142,8 @@ To build:
 3. Run `./configure`, setting the appropriate flags. Using Miniconda requires
    setting the environment before running this part, so the paths are found automatically. The default options are fine, unless you are adding GPU support.
 4. Run the build script `refresh_tf_build.sh` (CPU-only) or `refresh_tf_build_tpu.sh` (TPU).
+5. Install the `plumber_analysis` application layer by cloning this repository,
+   changing directory to `plumber_analysis`, and running the `install.sh` script.
 
 ##### Full Example on TPU
 
@@ -221,6 +223,10 @@ To build:
 4. Run the build. TPU build is shown below, since it's most complicated
    (requiring an extra `--config=tpu` flag). Note,
    for TPU, you need a `libtpu.so` file to build against, which is distributed with JAX TPU Python packages. Otherwise, you can find them pre-installed on TPU machines under `/usr/lib/libtpu.so`. *Place `libtpu.so` in the Tensorflow source directory so it can be found during the build installation.* Set `N_JOBS` to the thread count you want to use for the build.
+5. Install the `plumber_analysis` application layer by cloning this repository,
+   changing directory to `plumber_analysis`, and running the `install.sh` script.
+
+The Tensorflow build in step 4 will look something like:
 ```bash
   bazel build \
     --config=opt \
