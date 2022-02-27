@@ -131,13 +131,75 @@ pip install numpy --upgrade
 
 
 ### Building
+We provide convenience scripts for building Tensorflow inside the directory.
+If you don't want to use these, skip to the Manual Build section.
 
-Briefly to build:
+#### Scripted Build
+To build:
 
 1. Clone the Tensorflow repository with Plumber patch.
-2. Run `./configure`, setting the appropriate flags. Using Anaconda requires
+2. (For TPU builds) Copy libtpu.so into the Tensorflow directory.
+3. Run `./configure`, setting the appropriate flags. Using Miniconda requires
    setting the environment before running this part, so the paths are found automatically. The default options are fine, unless you are adding GPU support.
-3. Run the build. TPU build is shown below, since it's most complicated
+4. Run the build script `refresh_tf_build.sh` (CPU-only) or `refresh_tf_build_tpu.sh` (TPU).
+
+##### Full Example on TPU
+
+###### Initial Setup
+Install anaconda
+```bash
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+```
+
+Add a python3.7 env.
+```bash
+conda create python=3.7 -n py37
+```
+
+You need to install libtpu.so from a nightly package.
+```bash
+python3   -m pip install "jax[tpu]>=0.2.16" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
+sudo cp $HOME/.local/libtpu.so/libtpu.so /usr/lib/libtpu.so 
+```
+
+You can then do a Tensorflow build with it.
+```bash
+bazel build --config=tpu //tensorflow/tools/pip_package:build_pip_package
+```
+
+###### Tensorflow Build and Install
+Assuming Miniconda is installed with `py37` environment and libtpu.so is the
+version you want to use:
+
+```bash
+git clone --recurse-submodules https://github.com/mkuchnik/PlumberTensorflow.git
+cd PlumberTensorflow
+cp /usr/lib/libtpu.so .
+
+sudo apt -y update
+sudo apt -y install python3-venv
+conda activate py37
+
+pip install -U pip numpy wheel
+pip install -U keras_preprocessing --no-deps
+
+./configure
+bash refresh_tf_build_tpu.sh
+```
+
+To test everything is working fine, start a python shell and import tensorflow.
+If `tf.ones(1)` activates over multiple (8) devices, the TPU is working.
+
+
+#### Manual Build 
+To build:
+
+1. Clone the Tensorflow repository with Plumber patch.
+2. Copy libtpu.so into the Tensorflow directory.
+3. Run `./configure`, setting the appropriate flags. Using Anaconda requires
+   setting the environment before running this part, so the paths are found automatically. The default options are fine, unless you are adding GPU support.
+4. Run the build. TPU build is shown below, since it's most complicated
    (requiring an extra `--config=tpu` flag). Note,
    for TPU, you need a `libtpu.so` file to build against, which is distributed with JAX TPU Python packages. Otherwise, you can find them pre-installed on TPU machines under `/usr/lib/libtpu.so`. *Place `libtpu.so` in the Tensorflow source directory so it can be found during the build installation.* Set `N_JOBS` to the thread count you want to use for the build.
 ```bash
