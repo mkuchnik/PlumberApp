@@ -50,9 +50,14 @@ Building Tensorflow from source is well described via [official
 documentation](https://www.tensorflow.org/install/source), but we summarize it
 below.
 It is useful to use [Bazelisk](https://docs.bazel.build/versions/main/install-bazelisk.html) to build Tensorflow.
+The `refresh_tf_build.sh` script (and TPU variant) assumes it is in the Tensorflow directory,
+which is why it calls `./bazel` when building.
+Feel free to change this to something else if you placed `bazel` elsewhere.
 
 ```bash
 wget https://github.com/bazelbuild/bazelisk/releases/download/v1.11.0/bazelisk-linux-amd64
+mv bazelisk-linux-amd64 bazel
+chmod +x bazel
 ```
 
 We also recommend using
