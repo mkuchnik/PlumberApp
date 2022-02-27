@@ -280,6 +280,9 @@ We used `jax[tpu]==0.2.19` in our experiments, along with `jaxlib==0.1.70`. The
 script we use install 0.2.16 first and then these, though you can probably just
 install these versions directly.
 
+Note that we do these steps in the ResNet run. It is preferable to do ResNet
+before other runs because it ensures that the dependencies are working.
+
 ##### ResNet
 You should install the minimal requirements to avoid dependency clobber (e.g.,
 tensorflow-gpu being installed):
