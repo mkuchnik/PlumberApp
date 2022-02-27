@@ -464,7 +464,7 @@ You should install the minimal requirements to avoid dependency clobber (e.g.,
 tensorflow-gpu being installed):
 ```bash
 bash install_jax.sh  # Install JAX + plumber_analysis
-bash reinstall_tpu_lib.sh  # Sync libtpu.so version
+bash reinstall_tpu_lib.sh  # Sync libtpu.so version (note: may need sudo)
 pip install -r requirements_very_minimal.txt  # Get some pip packages
 ```
 
