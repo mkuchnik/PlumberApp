@@ -138,7 +138,7 @@ If you don't want to use these, skip to the Manual Build section.
 To build:
 
 1. Clone the Tensorflow repository with Plumber patch.
-2. (For TPU builds) Copy libtpu.so into the Tensorflow directory.
+2. (For TPU builds) Copy `libtpu.so` into the Tensorflow directory.
 3. Run `./configure`, setting the appropriate flags. Using Miniconda requires
    setting the environment before running this part, so the paths are found automatically. The default options are fine, unless you are adding GPU support.
 4. Run the build script `refresh_tf_build.sh` (CPU-only) or `refresh_tf_build_tpu.sh` (TPU).
@@ -159,7 +159,7 @@ Add a Python3.7 env, `py37`.
 conda create python=3.7 -n py37
 ```
 
-You need to install libtpu.so from a nightly package. *DO NOT INSTALL UNDER
+You need to install `libtpu.so` from a nightly package. *DO NOT INSTALL UNDER
 MINOCONDA*.
 ```bash
 conda deactivate # Get out of conda
@@ -169,11 +169,11 @@ python3   -m pip install "jax[tpu]>=0.2.16" -f https://storage.googleapis.com/ja
 sudo cp $HOME/.local/libtpu.so/libtpu.so /usr/lib/libtpu.so 
 ```
 
-You can then do a Tensorflow build with that libtpu.so version, which we'll copy
+You can then do a Tensorflow build with that `libtpu.so` version, which we'll copy
 into the source directory for Tensorflow, below.
 
 ###### Tensorflow Build and Install
-Assuming Miniconda is installed with `py37` environment and libtpu.so is the
+Assuming Miniconda is installed with `py37` environment and `libtpu.so` is the
 version you want to use:
 
 ```bash
@@ -227,7 +227,7 @@ import plumber_analysis # Should not throw error
 To build:
 
 1. Clone the Tensorflow repository with Plumber patch.
-2. Copy libtpu.so into the Tensorflow directory.
+2. Copy `libtpu.so` into the Tensorflow directory.
 3. Run `./configure`, setting the appropriate flags. Using Anaconda requires
    setting the environment before running this part, so the paths are found automatically. The default options are fine, unless you are adding GPU support.
 4. Run the build. TPU build is shown below, since it's most complicated
@@ -290,9 +290,11 @@ It's also hard to run the tests with the TPU build; CPU-only is better for
 testing.
 
 
-### TPU Libraries
+### TPU Libraries Gotchas
 TPUs need a driver and library to run, much like GPUs have CUDA.
-To get the libtpu.so file, run the following:
+
+#### Install
+To get the `libtpu.so` file, run the following (shown above in install):
 ```bash
 python3  -m pip install "jax[tpu]>=0.2.16" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
 ```
@@ -306,6 +308,14 @@ sudo cp $HOME/.local/libtpu.so/libtpu.so /usr/lib/libtpu.so
 
 As noted below, we used `jax[tpu]==0.2.19`.
 This gives us `libtpu-nightly-0.1.dev20210809`.
+
+#### Running
+Only one process can run with `libtpu` at a time.
+Therefore, if you encounter a problem with:
+`libtpu.so is already is used by anoter process. Not attempting to load libtpu.so in this process.`
+
+you will need to find and stop that process.
+
 
 ## A Simple Example
 In the `notebook` directory, we show how to run Plumber to analyze a simple
