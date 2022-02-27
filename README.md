@@ -471,7 +471,8 @@ Then to run with standard 96 threads/cores for the linear model:
 bash official_runners/linear_model_96.sh
 ```
 
-These runs will output something like the following (linear naive shown):
+These runs will output something like the following (Linear Autotune runs first
+and is shown):
 ```bash
 I0227 07:24:55.529147 140132377122816 train.py:888] Images per loop: 1282048
 I0227 07:24:55.529258 140132377122816 train.py:889] Loop bounds: 5
@@ -479,6 +480,20 @@ I0227 07:24:55.529352 140132377122816 train.py:896] Loop 0, rate=0.0, current_lo
 I0227 07:24:55.610690 140132377122816 train.py:898] LR=0.0
 I0227 07:27:24.209707 140119247529728 train.py:474] train epoch: 1, loss: 6.8660, accuracy: 0.32
 I0227 07:27:31.735340 140132377122816 train.py:896] Loop 1, rate=8207.412015521126, current_loop rate=8211.708982486187
+I0227 07:27:31.769288 140132377122816 train.py:898] LR=0.08000000566244125
+I0227 07:27:31.775491 140119247529728 train.py:474] eval epoch: 1, loss: 6.7389, accuracy: 0.53
+I0227 07:27:31.776827 140119247529728 mllog.py:168] :::MLLOG {"namespace": 0, "time_ms": 1645946851775, "event_type": "POINT_IN_TIME", "key": "eval_accuracy", "value": 0.00528, "metadata": {"file": "/home/mkuchnik_andrew_cmu_edu/PlumberApp/end_to_end/TPU/resnet-research-JAX-Distributed-Shampoo-tpu-v4-256/train.py", "lineno": 478, "epoch_num": 1}}
+I0227 07:27:31.777864 140119247529728 mllog.py:168] :::MLLOG {"namespace": 0, "time_ms": 1645946851777, "event_type": "INTERVAL_END", "key": "block_stop", "value": null, "metadata": {"file": "/home/mkuchnik_andrew_cmu_edu/PlumberApp/end_to_end/TPU/resnet-research-JAX-Distributed-Shampoo-tpu-v4-256/train.py", "lineno": 482, "first_epoch_num": 1, "epoch_count": 1}}
+I0227 07:27:31.780810 140119247529728 mllog.py:168] :::MLLOG {"namespace": 0, "time_ms": 1645946851780, "event_type": "INTERVAL_START", "key": "block_start", "value": null, "metadata": {"file": "/home/mkuchnik_andrew_cmu_edu/PlumberApp/end_to_end/TPU/resnet-research-JAX-Distributed-Shampoo-tpu-v4-256/train.py", "lineno": 489, "first_epoch_num": 2, "epoch_count": 1}}
+I0227 07:29:29.230601 140119247529728 train.py:474] train epoch: 2, loss: 6.6795, accuracy: 0.67
+I0227 07:29:29.403882 140132377122816 train.py:896] Loop 2, rate=9362.29673340281, current_loop rate=10898.607160054378
+I0227 07:29:31.711492 140132377122816 train.py:898] LR=0.01600000075995922
+I0227 07:29:31.717248 140119247529728 train.py:474] eval epoch: 2, loss: 6.6185, accuracy: 0.77
+I0227 07:29:31.718048 140119247529728 mllog.py:168] :::MLLOG {"namespace": 0, "time_ms": 1645946971717, "event_type": "POINT_IN_TIME", "key": "eval_accuracy", "value": 0.00772, "metadata": {"file": "/home/mkuchnik_andrew_cmu_edu/PlumberApp/end_to_end/TPU/resnet-research-JAX-Distributed-Shampoo-tpu-v4-256/train.py", "lineno": 478, "epoch_num": 2}}
+I0227 07:29:31.718366 140119247529728 mllog.py:168] :::MLLOG {"namespace": 0, "time_ms": 1645946971718, "event_type": "INTERVAL_END", "key": "block_stop", "value": null, "metadata": {"file": "/home/mkuchnik_andrew_cmu_edu/PlumberApp/end_to_end/TPU/resnet-research-JAX-Distributed-Shampoo-tpu-v4-256/train.py", "lineno": 482, "first_epoch_num": 2, "epoch_count": 1}}
+I0227 07:29:31.719552 140119247529728 mllog.py:168] :::MLLOG {"namespace": 0, "time_ms": 1645946971719, "event_type": "INTERVAL_START", "key": "block_start", "value": null, "metadata": {"file": "/home/mkuchnik_andrew_cmu_edu/PlumberApp/end_to_end/TPU/resnet-research-JAX-Distributed-Shampoo-tpu-v4-256/train.py", "lineno": 489, "first_epoch_num": 3, "epoch_count": 1}}
+I0227 07:31:52.656227 140119247529728 train.py:474] train epoch: 3, loss: 6.6371, accuracy: 0.76
+I0227 07:31:52.775688 140132377122816 train.py:896] Loop 3, rate=9217.917191839828, current_loop rate=9088.433776361755
 ```
 
 Where the "rate" is the throughput for that epoch. You can run the experiment in a window using `tmux`
