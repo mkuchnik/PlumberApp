@@ -73,12 +73,16 @@ conda activate py37
 
 ### Dependencies
 The dependencies to build Tensorflow are:
+
 ```bash
 sudo apt install python3-dev python3-pip
 pip install -U --user pip numpy wheel
 pip install -U --user keras_preprocessing --no-deps
 ```
 
+If you are using Miniconda, please install these pip packages inside the `py37` environment.
+
+#### Numpy compatibility
 Note that the numpy version used *WILL CAUSE BINARY INCOMPATIBILITY* if it does
 not exist with the exact version when run compared to when built.
 This is especially problematic with Python wheels, which may uninstall the
