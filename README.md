@@ -211,6 +211,16 @@ bash install.sh
 
 To test everything is working fine, start a python shell and import tensorflow.
 If `tf.ones(1)` activates over multiple (8) devices, the TPU is working.
+If you can import `plumber_analysis`, it is installed.
+
+```python3
+import tensorflow as tf
+tf.ones(1) # Should show 8 TPU devices
+import plumber_analysis # Should not throw error
+```
+
+
+
 
 
 #### Manual Build 
