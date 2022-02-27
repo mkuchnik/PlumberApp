@@ -417,12 +417,19 @@ bash run_all.sh
 bash run_all_PDL.sh
 ```
 
+**Dataset Path**: We leave the dataset paths hardcoded. Please adjust these in
+the respective microbenchmark's `train_sweep.sh` script.
+For example, ResNet has the path set [here](https://github.com/mkuchnik/PlumberApp/blob/fae0701838436e33dfd498758c6da2df0a9f5a73/microbenchmarks/simple_resnet/MLPerf/train_sweep.sh#L16).
+
 ### End-to-End (TPU)
 The end-to-end results run with the pipeline on CPU and the machine learning
 model on a Tensor Processing Unit (TPU).
 We specifically use a TPUv3-8 (Setup C).
 The rate measured is therefore the minimum of both the model performance and the
 pipeline performance.
+Just like for microbenchmarks, you will likely have to adjust the path to the
+corresponding dataset in the script that runs the experiment.
+
 
 #### Install
 After installing Tensorflow and the `plumber_analysis` library, you will need to get JAX and JAX libtpu for most
