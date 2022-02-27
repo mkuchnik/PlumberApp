@@ -496,7 +496,9 @@ I0227 07:31:52.656227 140119247529728 train.py:474] train epoch: 3, loss: 6.6371
 I0227 07:31:52.775688 140132377122816 train.py:896] Loop 3, rate=9217.917191839828, current_loop rate=9088.433776361755
 ```
 
-Where the "rate" is the throughput for that epoch. You can run the experiment in a window using `tmux`
+Where the "rate" is the throughput for that epoch (around 9-10k images/second).
+For a naive run, for example, we'd expect much worse performance.
+You can run the experiment in a window using `tmux`
 and check the CPU utilization while it is running---you should see many cores
 being used for the ResNet runs.
 
