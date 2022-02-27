@@ -446,6 +446,11 @@ Note that we recommend starting with ResNet first before moving to other
 end-to-end runs. It is preferable to do ResNet
 before other runs because it ensures that the dependencies are working.
 
+**What is using TPU.**
+For some runs, we use Tensorflow to control the model, and therefore the TPU.
+In other runs, we use [JAX](https://github.com/google/jax) to do the same.
+In all cases, Tensorflow is in control of the data pipeline with tf.data.
+
 ##### ResNet
 This pipeline uses JAX (TPU) + Tensorflow.
 You should install the minimal requirements to avoid dependency clobber (e.g.,
