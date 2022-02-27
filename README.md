@@ -55,6 +55,17 @@ It is useful to use [Bazelisk](https://docs.bazel.build/versions/main/install-ba
 wget https://github.com/bazelbuild/bazelisk/releases/download/v1.11.0/bazelisk-linux-amd64
 ```
 
+We also recommend using
+[Miniconda](https://docs.conda.io/en/latest/miniconda.html) to create a standardized environment.
+We use a Python3.7 environment (py37) for both building and installing the
+following software.
+
+```bash
+conda create -n py37 python=3.7
+conda activate py37
+```
+
+
 ### Dependencies
 The dependencies to build Tensorflow are:
 ```bash
