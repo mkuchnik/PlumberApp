@@ -163,10 +163,8 @@ python3   -m pip install "jax[tpu]>=0.2.16" -f https://storage.googleapis.com/ja
 sudo cp $HOME/.local/libtpu.so/libtpu.so /usr/lib/libtpu.so 
 ```
 
-You can then do a Tensorflow build with it.
-```bash
-bazel build --config=tpu //tensorflow/tools/pip_package:build_pip_package
-```
+You can then do a Tensorflow build with that libtpu.so version, which we'll copy
+into the source directory for Tensorflow, below.
 
 ###### Tensorflow Build and Install
 Assuming Miniconda is installed with `py37` environment and libtpu.so is the
