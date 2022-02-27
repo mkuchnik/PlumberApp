@@ -441,30 +441,48 @@ We used `jax[tpu]==0.2.19` in our experiments, along with `jaxlib==0.1.70`. The
 script we use install 0.2.16 first and then these, though you can probably just
 install these versions directly.
 
-Note that we do these steps in the ResNet run. It is preferable to do ResNet
+**Run Order.**
+Note that we recommend starting with ResNet first before moving to other
+end-to-end runs. It is preferable to do ResNet
 before other runs because it ensures that the dependencies are working.
 
 ##### ResNet
+This pipeline uses JAX (TPU) + Tensorflow.
 You should install the minimal requirements to avoid dependency clobber (e.g.,
 tensorflow-gpu being installed):
 ```bash
-bash install_jax.sh
-bash reinstall_tpu_lib.sh
-pip install -r requirements_very_minimal.txt
+bash install_jax.sh  # Install JAX + plumber_analysis
+bash reinstall_tpu_lib.sh  # Sync libtpu.so version
+pip install -r requirements_very_minimal.txt  # Get some pip packages
 ```
 
 Then to run with standard 96 threads/cores for resnet18:
 ```bash
-official_runners/resnet18_model_96.sh
+bash official_runners/resnet18_model_96.sh
 ```
 
 Then to run with standard 96 threads/cores for the linear model:
 ```bash
-official_runners/linear_model_96.sh
+bash official_runners/linear_model_96.sh
 ```
+
+These runs will output something like the following (linear naive shown):
+```bash
+I0227 07:24:55.529147 140132377122816 train.py:888] Images per loop: 1282048
+I0227 07:24:55.529258 140132377122816 train.py:889] Loop bounds: 5
+I0227 07:24:55.529352 140132377122816 train.py:896] Loop 0, rate=0.0, current_loop rate=5072923636.407547
+I0227 07:24:55.610690 140132377122816 train.py:898] LR=0.0
+I0227 07:27:24.209707 140119247529728 train.py:474] train epoch: 1, loss: 6.8660, accuracy: 0.32
+I0227 07:27:31.735340 140132377122816 train.py:896] Loop 1, rate=8207.412015521126, current_loop rate=8211.708982486187
+```
+
+Where the "rate" is the throughput for that epoch. You can run the experiment in a window using `tmux`
+and check the CPU utilization while it is running---you should see many cores
+being used for the ResNet runs.
 
 
 ##### RCNN
+This pipeline uses Tensorflow (TPU).
 Run the dependency install script.
 ```bash
 bash install_deps.sh
@@ -472,10 +490,11 @@ bash install_deps.sh
 
 Then to run with standard 96 threads/cores:
 ```bash
-official_runners/run_96.sh
+bash official_runners/run_96.sh
 ```
 
 ##### SSD
+This pipeline uses JAX (TPU) + Tensorflow.
 Run the dependency install script.
 ```bash
 bash install_deps.sh
@@ -483,12 +502,12 @@ bash install_deps.sh
 
 We can disable 48/96 cores with:
 ```bash
-cores_sweep_48.sh
+bash cores_sweep_48.sh
 ```
 
 Then to run with 48 threads/cores:
 ```bash
-official_runners/run.sh
+bash official_runners/run.sh
 ```
 
 To turn all cores back online:
@@ -498,17 +517,19 @@ sudo ./enable_cores.sh
 
 Then to run with 96 threads/cores:
 ```bash
-official_runners/run_96.sh
+bash official_runners/run_96.sh
 ```
 
 ##### Transformer (MLPerf)
+This pipeline uses JAX (TPU) + Tensorflow.
 To run:
 ```bash
-official_runners/run.sh
+bash official_runners/run.sh
 ```
 
 
 ##### Transformer (Flax WMT)
+This pipeline uses JAX (TPU) + Tensorflow + Tensorflow-text.
 You need to install [Tensorflow-text](https://github.com/tensorflow/text), which likely requires building from source
 to get compatibility with the Tensorflow fork.
 Since we are building a 2.7.0 Tensorflow fork, checkout Tensorflow-text commit
@@ -518,7 +539,7 @@ To ensure you don't clobber Tensorflow with standard 2.6.0 installs, modify the
 
 After installing this dependency, you can run:
 ```bash
-official_runners/run.sh
+bash official_runners/run.sh
 ```
 
 ##### GNMT
@@ -529,5 +550,5 @@ bash install_deps.sh
 
 Then to run:
 ```bash
-official_runners/run.sh
+bash official_runners/run.sh
 ```
