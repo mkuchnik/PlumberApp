@@ -220,9 +220,10 @@ If you can import `plumber_analysis`, it is installed.
 
 ```python3
 import tensorflow as tf
-tf.ones(1) # Should show 8 TPU devices sharding the Tensor
-num_devices = tf.config.list_physical_devices()
-print("num_devices: {}".format(num_devices))
+tf.ones(1) # Should show 8 TPU "StreaExecutor" devices initializing in logs
+tpu_devices = tf.config.list_physical_devices("TPU")
+print("tpu_devices: {}".format(tpu_devices)) # Should be 8 TPUs
+print("num TPU: {}".format(len(tpu_devices))) # Should be 8
 import plumber_analysis # Should not throw error
 ```
 
