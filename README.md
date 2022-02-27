@@ -168,8 +168,8 @@ MINOCONDA*.
 conda deactivate # Get out of conda
 conda deactivate # Get out of conda
 conda deactivate # Get out of conda
-python3   -m pip install "jax[tpu]>=0.2.16" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
-sudo cp $HOME/.local/libtpu.so/libtpu.so /usr/lib/libtpu.so 
+python3 -m pip install "jax[tpu]==0.2.19" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html  # Match libtpu.so to version used
+sudo cp $HOME/.local/libtpu.so/libtpu.so /usr/lib/libtpu.so  # Overwrite existing libtpu.so
 ```
 
 You can then do a Tensorflow build with that `libtpu.so` version, which we'll copy
