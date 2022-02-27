@@ -255,6 +255,9 @@ You can also try to find the process using `libtpu` with:
 sudo lsof -w /dev/accel0
 ```
 
+As a last resort, the lock is on `/tmp/libtpu_lockfile`, so you can delete that
+file at the risk of causing `libtpu` to enter undefined state.
+
 #### Manual Build 
 To build:
 
@@ -359,6 +362,9 @@ You can also try to find the process using `libtpu` with:
 ```bash
 sudo lsof -w /dev/accel0
 ```
+
+As a last resort, the lock is on `/tmp/libtpu_lockfile`, so you can delete that
+file at the risk of causing `libtpu` to enter undefined state.
 
 
 
