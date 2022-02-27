@@ -65,6 +65,16 @@ We also recommend using
 We use a Python3.7 environment (py37) for both building and installing the
 following software.
 
+To install:
+```bash
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+```
+You will have to scroll though and type "yes" at the end.
+
+
+After install, you will want to create the environment. To create it:
+
 ```bash
 conda create -n py37 python=3.7
 conda activate py37
