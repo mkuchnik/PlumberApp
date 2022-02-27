@@ -468,6 +468,10 @@ bash reinstall_tpu_lib.sh  # Sync libtpu.so version
 pip install -r requirements_very_minimal.txt  # Get some pip packages
 ```
 
+Note that sometimes keras gets installed alongside keras-nightly, causing an
+error when the model is run. If this happens, make sure there are not multiple
+versions of keras/keras-nightly installed.
+
 Then to run with standard 96 threads/cores for resnet18:
 ```bash
 bash official_runners/resnet18_model_96.sh
