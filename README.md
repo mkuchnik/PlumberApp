@@ -162,8 +162,10 @@ Add a Python3.7 env, `py37`.
 conda create python=3.7 -n py37
 ```
 
-You need to install `libtpu.so` from a nightly package. *DO NOT INSTALL UNDER
-MINOCONDA*.
+You need to install `libtpu.so` from a JAX installation.
+*DO NOT INSTALL UNDER MINICONDA*.
+We are simply trying to get the `libtpu.so` file consistent across the system, which we will use to both
+build and run Tensorflow.
 ```bash
 conda deactivate # Get out of conda
 conda deactivate # Get out of conda
