@@ -81,6 +81,13 @@ pip install -U --user keras_preprocessing --no-deps
 ```
 
 If you are using Miniconda, please install these pip packages inside the `py37` environment.
+For **maximum compatibility**, specify the version of numpy explicitly:
+
+```bash
+sudo apt install python3-dev python3-pip
+pip install pip numpy==1.21.5 wheel
+pip install keras_preprocessing --no-deps
+```
 
 #### Numpy compatibility
 Note that the numpy version used *WILL CAUSE BINARY INCOMPATIBILITY* if it does
