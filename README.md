@@ -468,9 +468,16 @@ bash reinstall_tpu_lib.sh  # Sync libtpu.so version (note: may need sudo)
 pip install -r requirements_very_minimal.txt  # Get some pip packages
 ```
 
+**Dependency Notes.**
 Note that sometimes keras gets installed alongside keras-nightly, causing an
 error when the model is run. If this happens, make sure there are not multiple
 versions of keras/keras-nightly installed.
+Note we provide a `requirements.txt` file with a full dependency list to compare
+against with `pip freeze` if dependency issues come up.
+`requirements_very_minimal.txt` is recommended to install from (above) because the amount of
+dependencies in `requirements.txt` makes it difficult to satisfy them all, and
+causes issues with `pip` (e.g., the pip dependency solver becomes slow or
+complains about incompatible versions).
 
 Then to run with standard 96 threads/cores for resnet18:
 ```bash
