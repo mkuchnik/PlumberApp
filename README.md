@@ -218,8 +218,14 @@ If you can import `plumber_analysis`, it is installed.
 
 ```python3
 import tensorflow as tf
-tf.ones(1) # Should show 8 TPU devices
+tf.ones(1) # Should show 8 TPU devices sharding the Tensor
 import plumber_analysis # Should not throw error
+```
+
+Similarly, if using JAX for an end-to-end run:
+```python3
+import jax
+jax.device_count() # Should show 8 TPU devices
 ```
 
 If you see a timeout connecting to TPU, it is likely that some other process is
