@@ -176,6 +176,12 @@ sudo cp $HOME/.local/libtpu.so/libtpu.so /usr/lib/libtpu.so  # Overwrite existin
 
 You can then do a Tensorflow build with that `libtpu.so` version, which we'll copy
 into the source directory for Tensorflow, below.
+When done correctly, that version of `libtpu.so` should return the following
+checksum.
+```bash
+$sha1sum /usr/lib/libtpu.so 
+44c88d0d50f2f8ffc9eedc17dde72e60b28f3963  /usr/lib/libtpu.so
+```
 
 ###### Tensorflow Build and Install
 Assuming Miniconda is installed with `py37` environment and `libtpu.so` is the
