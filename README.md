@@ -209,7 +209,7 @@ bash refresh_tf_build_tpu.sh
 # Exit Directory
 cd ..
 
-# Install Plumber App
+# Install Plumber Analysis App
 git clone https://github.com/mkuchnik/PlumberApp.git
 cd PlumberApp/plumber_analysis
 bash install.sh
@@ -221,7 +221,7 @@ If you can import `plumber_analysis`, it is installed.
 
 ```python3
 import tensorflow as tf
-tf.ones(1) # Should show 8 TPU "StreaExecutor" devices initializing in logs
+tf.ones(1) # Should show 8 TPU "StreamExecutor" devices initializing in logs
 tpu_devices = tf.config.list_physical_devices("TPU")
 print("tpu_devices: {}".format(tpu_devices)) # Should be 8 TPUs
 print("num TPU: {}".format(len(tpu_devices))) # Should be 8
