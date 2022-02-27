@@ -70,7 +70,8 @@ To install:
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh
 ```
-You will have to scroll though and type "yes" at the end.
+You will have to scroll though and type "yes" at the end. You should leave the
+options as the defaults.
 
 
 After install, you will want to create the environment. To create it:
