@@ -371,7 +371,7 @@ The rate measured is therefore the minimum of both the model performance and the
 pipeline performance.
 
 #### Install
-After installing Tensorflow, you will need to get JAX and JAX libtpu for most
+After installing Tensorflow and the `plumber_analysis` library, you will need to get JAX and JAX libtpu for most
 end-to-end runs. For example to get tpu version 0.2.16, run:
 ```bash
 pip install "jax[tpu]==0.2.16" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
