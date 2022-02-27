@@ -196,7 +196,8 @@ chmod +x bazel
 sudo apt -y update
 sudo apt -y install python3-venv
 conda activate py37
-pip install -U pip numpy wheel
+# Standard Tensorflow Dependencies
+pip install -U pip numpy==1.21.5 wheel
 pip install -U keras_preprocessing --no-deps
 
 # Default options are probably fine (make sure you see a path to miniconda)
