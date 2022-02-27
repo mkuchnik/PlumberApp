@@ -180,6 +180,11 @@ git clone --recurse-submodules https://github.com/mkuchnik/PlumberTensorflow.git
 cd PlumberTensorflow
 cp /usr/lib/libtpu.so .  # Copy libtpu version to Tensorflow for building
 
+# Get bazel
+wget https://github.com/bazelbuild/bazelisk/releases/download/v1.11.0/bazelisk-linux-amd64
+mv bazelisk-linux-amd64 bazel
+chmod +x bazel
+
 # Install Dependencies
 sudo apt -y update
 sudo apt -y install python3-venv
