@@ -219,9 +219,13 @@ tf.ones(1) # Should show 8 TPU devices
 import plumber_analysis # Should not throw error
 ```
 
+If you see a timeout connecting to TPU, it is likely that some other process is
+holding a lock on `libtpu.so`. You can try to find and kill it by killing all
+`python` processes (that are not root).
 
-
-
+```bash
+ps aux | grep python | grep -v "grep python" | awk '{print $2}' | xargs kill -9
+```
 
 #### Manual Build 
 To build:
@@ -314,7 +318,15 @@ Only one process can run with `libtpu` at a time.
 Therefore, if you encounter a problem with:
 `libtpu.so is already is used by anoter process. Not attempting to load libtpu.so in this process.`
 
-you will need to find and stop that process.
+(or some variant of a TPU timeout) you will need to find and stop that process.
+
+You can try to find and kill it by killing all
+`python` processes (that are not root).
+
+```bash
+ps aux | grep python | grep -v "grep python" | awk '{print $2}' | xargs kill -9
+```
+
 
 
 ## A Simple Example
