@@ -126,8 +126,6 @@ def _optimize_pipeline(kwargs_precondition_f,
         def wrapper(*args, **kwargs):
             def _wrapper():
                 _check_environment_for_errors()
-                if _is_graph_mode():
-                    raise NotImplementedError(_TF1_SUPPORT_MSG)
                 start_time = time.perf_counter()
                 dataset_fn = lambda: loader_fn(*args, **kwargs)
                 dataset = dataset_fn()
@@ -145,15 +143,21 @@ def _optimize_pipeline(kwargs_precondition_f,
                                     return_test_dataset=False, return_rate=False,
                                     use_parameter_cache=use_parameter_cache)
                 if pipeline_optimizer_wrapper.plumber_fake_pipeline():
+                    if _is_graph_mode():
+                        raise NotImplementedError(_TF1_SUPPORT_MSG)
                     new_dataset = pipeline_optimizer_wrapper.get_fake_pipeline(dataset)
                     logging.warning("USING FAKE DATASET")
                 elif kwargs_precondition_f:
                     if _dispatch_kwargs_precondition_f(kwargs_precondition_f, args, kwargs):
+                        if _is_graph_mode():
+                            raise NotImplementedError(_TF1_SUPPORT_MSG)
                         new_dataset = new_dataset_fn()
                     else:
                         logging.info("Precondition failed! Passing through dataset.")
                         new_dataset = dataset
                 else:
+                    if _is_graph_mode():
+                        raise NotImplementedError(_TF1_SUPPORT_MSG)
                     new_dataset = new_dataset_fn()
                 end_time = time.perf_counter()
                 elapsed_time = end_time - start_time
@@ -235,16 +239,18 @@ def maybe_find_best_pipeline(kwargs_precondition_f=None, optimization_arg_grid=N
         @functools.wraps(loader_fn)
         def wrapper(*args, **kwargs):
             _check_environment_for_errors()
-            if _is_graph_mode():
-                raise NotImplementedError(_TF1_SUPPORT_MSG)
             start_time = time.perf_counter()
             dataset = loader_fn(*args, **kwargs)
             logging.info("OPTIMIZE PIPELINE ENTER WITH DATASET: {} ({})".format(
                 dataset, id(dataset)))
             if pipeline_optimizer_wrapper.plumber_fake_pipeline():
+                if _is_graph_mode():
+                    raise NotImplementedError(_TF1_SUPPORT_MSG)
                 new_dataset = pipeline_optimizer_wrapper.get_fake_pipeline(dataset)
                 logging.warning("USING FAKE DATASET")
             elif pipeline_optimizer_wrapper.plumber_find_best_pipeline():
+                if _is_graph_mode():
+                    raise NotImplementedError(_TF1_SUPPORT_MSG)
                 if kwargs_precondition_f:
                     if kwargs_precondition_f(kwargs):
                         arg_grid = dict(kwargs)
