@@ -412,6 +412,11 @@ The rate measured is therefore the maximum possible rate sustained by that
 pipeline under that configuration.
 These are run on Setup A and B, and do not need to be build with `libtpu.so` for
 TPUs; a CPU-only Tensorflow build suffices.
+In fact, if you are using the TPU build, you may hit errors like
+`tensorflow.python.framework.errors_impl.UnauthenticatedError: ioctl failed`
+caused by JAX/TensorFlow's TPU libraries attempting authentication (which is not
+used)---in that case, please block `libtpu` from being loaded by intentionally
+breaking out of a running `libtpu` session with CTRL+C (which would create `/tmp/libtpu_lockfile`).
 Note that you will still need to install `plumber_analysis` with the `install.sh` install
 script.
 
