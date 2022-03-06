@@ -19,6 +19,9 @@ import numpy as np
 import os
 import math
 from matplotlib import cm
+import matplotlib
+# Use Agg backend for headless (non-GUI) runs
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import functools
 import logging
