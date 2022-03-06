@@ -448,6 +448,13 @@ We used `jax[tpu]==0.2.19` in our experiments, along with `jaxlib==0.1.70`. The
 script we use install 0.2.16 first and then these, though you can probably just
 install these versions directly.
 
+Note that the `libtpu.so` writes logs to `/tmp/tpu_logs`, so you should
+clear these logs if you see warnings about overwriting these files (e.g., if
+another user wrote to `/tmp/tpu_logs`).
+```bash
+sudo rm -rf /tmp/tpu_logs/`
+```
+
 **Run Order.**
 Note that we recommend starting with ResNet first before moving to other
 end-to-end runs. It is preferable to do ResNet
