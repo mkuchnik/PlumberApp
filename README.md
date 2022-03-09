@@ -432,6 +432,19 @@ bash run_all_PDL.sh
 the respective microbenchmark's `train_sweep.sh` script.
 For example, ResNet has the path set [here](https://github.com/mkuchnik/PlumberApp/blob/fae0701838436e33dfd498758c6da2df0a9f5a73/microbenchmarks/simple_resnet/MLPerf/train_sweep.sh#L16).
 
+#### Plotting
+Each of the microbenchmark directories will emit a directory within it after
+running the above runner scripts, which will contain the results of each of the experiments.
+To plot the results to show throughput as well as the predictions for
+throughput, we provide an example script in `microbenchmarks/plot_stats.py`.
+You can point this file to the directory created during the microbenchmark to
+create the corresponding throughput plots.
+For example, for ResNet, run the following from the `microbenchmarks` directory:
+
+```bash
+python3 plot_stats.py simple_resnet/MLPerf/train_sweep_0_resnet_test"
+```
+
 ### End-to-End (TPU)
 The end-to-end results run with the pipeline on CPU and the machine learning
 model on a Tensor Processing Unit (TPU).
