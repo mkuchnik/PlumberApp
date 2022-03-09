@@ -442,7 +442,7 @@ create the corresponding throughput plots.
 For example, for ResNet, run the following from the `microbenchmarks` directory:
 
 ```bash
-python3 plot_stats.py simple_resnet/MLPerf/train_sweep_0_resnet_test"
+python3 plot_stats.py simple_resnet/MLPerf/train_sweep_0_resnet_test
 ```
 
 ### End-to-End (TPU)
