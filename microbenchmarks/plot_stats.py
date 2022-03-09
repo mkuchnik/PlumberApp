@@ -122,6 +122,89 @@ def autoconfig_baselines(set_baselines=True):
         HEURISTIC_BEST = heuristic_rate
         AUTOTUNE_BEST = autotune_rate
 
+def plot_benchmark_stats(filename, ax=None, color=None, legend=True,
+                         use_vectors=True, mark_max_throughput=True,
+                         key=None):
+    """Helper plot utility that support annotating optimization steps with
+    vectors. Used for plotting local predictions."""
+    df = pd.read_csv(filename)
+    _df = df.query("step < {}".format(MAX_STEPS))
+    if not key:
+        key = "Plumber"
+    _df[key] = _df["global_minibatch_rate"]
+    filtered_df = _df.query("deviation == 0").reset_index()
+    if ax is None:
+        fig, ax = plt.subplots()
+    if color:
+        ax = filtered_df.plot(x="step", y=key, ax=ax,
+                              color=color, legend=legend)
+    else:
+        ax = filtered_df.plot(x="step", y=key, ax=ax,
+                              legend=legend)
+    if mark_max_throughput:
+        row = filtered_df["global_minibatch_rate"].argmax()
+        xy = filtered_df.loc[row, ["step", "global_minibatch_rate"]]
+        ax.plot(xy[0], xy[1], "ro")
+    filtered_df = _df.query("deviation != 0")
+    if len(filtered_df):
+        if use_vectors:
+            max_step = _df["step"].max()
+            for step in range(1, max_step + 1):
+                start_df = _df.query("deviation == 0 & step == {}".format(step-1))
+                end_df = _df.query("deviation != 0 & step == {}".format(step))
+                end_df_rec = _df.query("deviation == 0 & step == {}".format(step))
+                assert len(start_df) == 1
+                assert len(end_df_rec) == 1
+                prior_rate = start_df["global_minibatch_rate"].values[0]
+                rec_rate = end_df_rec["global_minibatch_rate"].values[0]
+                curr_rates = end_df["global_minibatch_rate"].values
+                diff_rates = curr_rates - prior_rate
+                X = [step - 1 for i in range(len(diff_rates))]
+                Y = [prior_rate for i in range(len(diff_rates))]
+                U = [1 for i in range(len(diff_rates))]
+                V = [x for x in diff_rates]
+                is_better = [x > rec_rate for x in curr_rates]
+                color_dict = {
+                    True: "red",
+                    False: "green",
+                }
+                color = list(map(lambda x: color_dict[x], is_better))
+                ax.quiver(X, Y, U, V, color=color, angles="xy",
+                          scale_units="xy", scale=1)
+        else:
+            ax = filtered_df.plot(x="step", y=key,
+                                  color="r",
+                                  kind="scatter",
+                                  ax=ax)
+    return ax
+
+def plot_benchmark_rates(root_dir, plot_random=False):
+    """Plots local decision optimality of Plumber vs. random"""
+    fig, axs = plt.subplots(1)
+    axs = [axs] # ax is not a list if subplots=1
+    ax = axs[0]
+    for i in range(MAX_TRIALS):
+        plumber_rewrites_dir = "plumber_rewrites_{}".format(i)
+        dir_name = root_dir / plumber_rewrites_dir
+        if dir_name.exists():
+            filename = dir_name / "benchmark_stats.csv"
+            if filename.exists():
+                ax = plot_benchmark_stats(filename, ax=ax, legend=False)
+                break
+    if plot_random:
+        for i in range(MAX_TRIALS):
+            plumber_rewrites_dir = "random_rewrites_{}".format(i)
+            dir_name = root_dir / plumber_rewrites_dir
+            if dir_name.exists():
+                filename = dir_name / "benchmark_stats.csv"
+                if filename.exists():
+                    ax = plot_benchmark_stats(filename, ax=ax, color="r",
+                                              legend=False, key="Random")
+    ax = add_baselines(ax)
+    ax.set_xlabel("Step")
+    ax.set_ylabel("Throughput (minibatch/s)")
+    return ax
+
 def plot_estimated_max_rate(filename_or_df, ax=None, color=None, legend=True,
                             p_busy=False, x_axis_key="step", style="scatter",
                             show_convex=True, show_convex_existing=False,
@@ -306,6 +389,12 @@ g.set_ylabel("Throughput (minibatch/s)")
 plt.tight_layout()
 plt.savefig("benchmark_stats_{}_agg.pdf".format(FILE_TAG))
 plt.clf()
+
+ax = plot_benchmark_rates(root_dir, plot_random=False)
+plt.tight_layout()
+plt.savefig("benchmark_stats_{}_local.pdf".format(FILE_TAG))
+plt.clf()
+
 
 mega_df = populate_current_estimated_throughput(mega_df)
 if "iterator_autotune_output_rate" in mega_df:

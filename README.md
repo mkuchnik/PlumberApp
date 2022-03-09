@@ -435,7 +435,8 @@ For example, ResNet has the path set [here](https://github.com/mkuchnik/PlumberA
 #### Plotting
 Each of the microbenchmark directories will emit a directory within it after
 running the above runner scripts, which will contain the results of each of the experiments.
-To plot the results to show throughput as well as the predictions for
+To plot the results to show throughput, local decision optimality,
+and predictions for
 throughput, we provide an example script in `microbenchmarks/plot_stats.py`.
 You can point this file to the directory created during the microbenchmark to
 create the corresponding throughput plots.
