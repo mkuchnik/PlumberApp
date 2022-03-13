@@ -23,6 +23,7 @@ from plumber_analysis import (convex_solver, gen_util, graphdef_util,
 
 # TODO(mkuchnik): Move common constants to different file
 FRACTION_CACHEABLE_MEMORY = 0.9
+DEFAULT_BENCHMARK_TIME = 62 # 62 seconds
 
 def _instantiate_pipeline(graphdef, element_spec):
     placeholders = graphdef_util.find_placeholders(graphdef)
@@ -836,7 +837,7 @@ class DataPipelineOptimizer(object):
         can be discarded if plumber file overwrites the graphdef.
         """
         if benchmark_time_s is None:
-            benchmark_time_s = 22
+            benchmark_time_s = DEFAULT_BENCHMARK_TIME
 
         def remove_file_if_exists(filename):
             if filename:

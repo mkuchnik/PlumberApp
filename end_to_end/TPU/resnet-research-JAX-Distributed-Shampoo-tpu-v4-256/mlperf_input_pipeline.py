@@ -32,6 +32,11 @@ import mixup
 import augmentations
 import logging
 
+from plumber_analysis import pipeline_optimizer as _pipeline_optimizer
+
+_pipeline_optimizer.DEFAULT_BENCHMARK_TIME = 60 + 2
+pipeline_optimizer.BENCHMARK_TIME = 60 + 2
+
 config.enable_compat_logging()
 
 FLAGS = flags.FLAGS
@@ -306,7 +311,8 @@ def _load_split(batch_size, train, dtype, image_format, space_to_depth,
     file_pattern = train_file_pattern if train else val_file_pattern
     dataset = tf.data.Dataset.list_files(file_pattern, shuffle=False)
     dataset = dataset.shard(num_hosts, index)
-    concurrent_files = min(10, 1024 // num_hosts)
+    # concurrent_files = min(10, 1024 // num_hosts)
+    concurrent_files = DEFAULT_PARALLELISM()
     dataset = dataset.interleave(
         tf.data.TFRecordDataset, concurrent_files, 1, concurrent_files)
 

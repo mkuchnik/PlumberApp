@@ -201,7 +201,7 @@ class TrainAndEvalRunner(object):
     self.post_train_loop_callbacks = []
     self.num_outfeeds = self.eval_steps
     self.config = tf.ConfigProto(
-        operation_timeout_in_ms=600 * 60 * 1000,
+        operation_timeout_in_ms=2 * 600 * 60 * 1000,
         allow_soft_placement=True,
         graph_options=tf.GraphOptions(
             rewrite_options=rewriter_config_pb2.RewriterConfig(

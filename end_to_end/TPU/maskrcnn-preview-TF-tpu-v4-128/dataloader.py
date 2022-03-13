@@ -542,7 +542,8 @@ class InputReader(object):
         num_parallel_calls=DEFAULT_PARALLELISM())
 
     #dataset = dataset.prefetch(tf.data.AUTOTUNE)
-    dataset = dataset.prefetch(DEFAULT_PREFETCHING())
+    if DEFAULT_PREFETCHING():
+        dataset = dataset.prefetch(DEFAULT_PREFETCHING())
 
     if (self._mode == tf.estimator.ModeKeys.TRAIN and
         num_examples > 0):
@@ -563,7 +564,8 @@ class InputReader(object):
     options.experimental_deterministic = deterministic
     options.experimental_threading.max_intra_op_parallelism = 1
     options.experimental_threading.private_threadpool_size = 96
-    #options.experimental_optimization.autotune_stats_filename = "stats.pb"
+    # NOTE(mkuchnik): Plumber Tracing
+    options.experimental_optimization.autotune_stats_filename = "stats.pb"
     dataset = dataset.with_options(options)
 
     if self._mode == tf.estimator.ModeKeys.TRAIN:

@@ -483,6 +483,19 @@ For some runs, we use Tensorflow to control the model, and therefore the TPU.
 In other runs, we use [JAX](https://github.com/google/jax) to do the same.
 In all cases, Tensorflow is in control of the data pipeline with tf.data.
 
+**Constraints.**
+TF2 with native ops is the main target of Plumber. TF1 workflows currently
+cannot be resumed, and therefore require either benchmarking the input pipeline
+in a TF2 context (i.e., a microbenchmark)
+or tracing the pipeline in a TF1 context and resuming it in a
+TF2 context. For the latter, we provide the relevant pipelines (i.e., RCNN/GNMT) with
+a `get_params.py`, which can start Plumber optimization after tracing in a TF2 context.
+Similarly, pipelines with custom kernels (i.e., Flax WMT) cannot be
+easily deserialized in either TF2 or TF1, so we provide a `show_params.sh` to
+print out the currently recommended parameters after tracing.
+The parameters can then be copied over to the input pipeline.
+
+
 ##### ResNet
 This pipeline uses JAX (TPU) + Tensorflow.
 You should install the minimal requirements to avoid dependency clobber (e.g.,
@@ -558,6 +571,10 @@ Then to run with standard 96 threads/cores:
 bash official_runners/run_96.sh
 ```
 
+To obtain the Plumber parameters, please run the naive pipeline with tracing and then run
+`get_params.py` with the emitted `stats.pb` placed in the same directory as you
+are running `get_params.py` from.
+
 ##### SSD
 This pipeline uses JAX (TPU) + Tensorflow.
 Run the dependency install script.
@@ -607,6 +624,15 @@ After installing this dependency, you can run:
 bash official_runners/run.sh
 ```
 
+Because this pipeline uses custom operators which cannot be easily
+deserialized, we utilize the provided `show_params.sh` script to
+print out Plumber's recommendation when optimizing the `stats.pb` file emitted by
+tracing the naive pipeline.
+Note that this requires running the optimization at least twice to get the final
+parameters to account for cache insertion.
+Each of the pipelines configurations are provided as separate files which can be
+copied over `input_pipeline.py`.
+
 ##### GNMT
 Run the dependency install script.
 ```bash
@@ -617,3 +643,7 @@ Then to run:
 ```bash
 bash official_runners/run.sh
 ```
+
+To obtain the Plumber parameters, please run the naive pipeline with tracing and then run
+`get_params.py` with the emitted `stats.pb` placed in the same directory as you
+are running `get_params.py` from.

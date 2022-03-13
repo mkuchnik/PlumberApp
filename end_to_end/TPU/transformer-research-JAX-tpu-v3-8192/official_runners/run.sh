@@ -80,9 +80,8 @@ function step_naive {
 	  --model_dir="my_model_dir" \
 	  --precompile=${precompile} \
 	  --input_pipeline_default_parallelism=1 \
-	  --input_pipeline_default_prefetching=1 \
-	  --num_epochs=6 \
-      | tee ${name}_log.txt
+	  --input_pipeline_default_prefetching=0 \
+      ${global_opt} 2>&1 | tee ${name}_log.txt
   cp stats.pb $name.pb
   popd
 }
@@ -119,7 +118,9 @@ function step_plumber {
 	  --vocab_path=${vocab_path} \
 	  --model_dir="my_model_dir" \
 	  --precompile=${precompile} \
-      ${global_opt} | tee ${name}_log.txt
+	  --input_pipeline_default_parallelism=1 \
+	  --input_pipeline_default_prefetching=0 \
+      ${global_opt} 2>&1 | tee ${name}_log.txt
   cp stats.pb $name.pb
   popd
 }
@@ -221,7 +222,7 @@ function step_heuristic {
 	  --eval_data_path=${eval_data_path} \
 	  --vocab_path=${vocab_path} \
 	  --model_dir="my_model_dir" \
-	  --precompile=True \
+	  --precompile=${precompile} \
 	  --input_pipeline_default_parallelism=96 \
 	  --input_pipeline_default_prefetching=1024 \
       ${global_opt} 2>&1 | tee ${name}_log.txt

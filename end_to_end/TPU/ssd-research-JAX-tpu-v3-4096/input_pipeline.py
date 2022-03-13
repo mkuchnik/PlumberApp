@@ -16,6 +16,12 @@ import dataloader
 import ssd_constants
 
 import plumber_analysis.annotations
+from plumber_analysis import pipeline_optimizer_wrapper as pipeline_optimizer
+from plumber_analysis import pipeline_optimizer as _pipeline_optimizer
+print("Default time: {}".format(_pipeline_optimizer.DEFAULT_BENCHMARK_TIME))
+print("Default time: {}".format(pipeline_optimizer.BENCHMARK_TIME))
+_pipeline_optimizer.DEFAULT_BENCHMARK_TIME = 60 + 2
+pipeline_optimizer.BENCHMARK_TIME = 60 + 2
 
 FLAGS = flags.FLAGS
 

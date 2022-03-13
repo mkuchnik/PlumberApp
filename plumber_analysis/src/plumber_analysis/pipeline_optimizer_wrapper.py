@@ -15,6 +15,7 @@ import distutils.util
 import pickle
 import pprint
 import time
+import shutil
 
 import networkx as nx
 import numpy as np
@@ -24,7 +25,10 @@ import tensorflow as tf
 from plumber_analysis import pipeline_optimizer, gen_util, extensions, bandwidth_utilities
 import plumber_analysis.machine_info
 
+DEFAULT_STATS_FILENAME = "stats.pb"
+DEFAULT_BACKUP_STATS_FILENAME = "stats_original_backup.pb"
 PARAMS_FILENAME = "params.p"
+BENCHMARK_TIME = 62  # 62 seconds
 
 def graph_wrapped_benchmark_dataset(dataset, time_limit_s):
     # NOTE(mkuchnik): Wrapping benchmark_dataset variants naively
@@ -65,7 +69,8 @@ def create_optimizer():
     # Instances can also be procured via
     # https://cloud.google.com/compute/docs/tutorials/python-guide
 
-    filename = "stats.pb"  # TODO(mkuchnik): Don't hardcode
+    filename = DEFAULT_STATS_FILENAME  # TODO(mkuchnik): Don't hardcode
+    shutil.copyfile(filename, DEFAULT_BACKUP_STATS_FILENAME)
 
     # Note(mkuchnik): we can instantiate a machine_info here like this:
     # machine_info = {'HOSTNAME': 'Localhost', 'CORES': 96, 'MEMORY': int(299e9),
@@ -303,7 +308,7 @@ def get_optimized_pipeline(dataset, override_presets=True,
 
     logging.info("Running preliminary benchmark")
     dataset = apply_default_options(dataset, override_presets)
-    ret = _benchmark_dataset(dataset, time_limit_s=12)
+    ret = _benchmark_dataset(dataset, time_limit_s=BENCHMARK_TIME)
     logging.info("End preliminary benchmark")
     logging.info("benchmark {}".format(ret))
 
@@ -343,7 +348,7 @@ def get_optimized_pipeline(dataset, override_presets=True,
 
 def get_fake_pipeline(dataset, override_presets=True):
     dataset = apply_default_options(dataset, override_presets)
-    ret = _benchmark_dataset(dataset, time_limit_s=12)
+    ret = _benchmark_dataset(dataset, time_limit_s=BENCHMARK_TIME)
     logging.info("benchmark {}".format(ret))
     optimizer = create_optimizer()
     dataset = optimizer.fake_dataset()
@@ -351,7 +356,7 @@ def get_fake_pipeline(dataset, override_presets=True):
 
 def get_source_pipeline(dataset, override_presets=True):
     dataset = apply_default_options(dataset, override_presets)
-    ret = _benchmark_dataset(dataset, time_limit_s=12)
+    ret = _benchmark_dataset(dataset, time_limit_s=BENCHMARK_TIME)
     logging.info("benchmark {}".format(ret))
     optimizer = create_optimizer()
     dataset = optimizer.source_dataset()
@@ -419,7 +424,7 @@ def _benchmark_source_parallelisms(optimizer, override_presets=True,
 def benchmark_source_parallelisms(dataset, override_presets=True, sweep_range=None):
     """Sweeps a range of parallelism and report benchmark rates"""
     dataset = apply_default_options(dataset, override_presets, apply_tracing=False)
-    ret = _benchmark_dataset(dataset, time_limit_s=12)
+    ret = _benchmark_dataset(dataset, time_limit_s=BENCHMARK_TIME)
     logging.info("benchmark {}".format(ret))
     optimizer = create_optimizer()
     rets, _ = _benchmark_source_parallelisms(

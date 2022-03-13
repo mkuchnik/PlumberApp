@@ -32,6 +32,7 @@ plumber_analysis.config.enable_compat_logging()
 
 AUTOTUNE = tf.data.AUTOTUNE
 AUTOTUNE = 1
+PREFETCH_AUTOTUNE = 0
 tf.data.AUTOTUNE = AUTOTUNE
 Features = Dict[str, tf.Tensor]
 
@@ -287,7 +288,7 @@ def preprocess_wmt_data(dataset,
                         max_length: int = 512,
                         batch_size: int = 256,
                         drop_remainder: bool = True,
-                        prefetch_size: int = AUTOTUNE):
+                        prefetch_size: int = PREFETCH_AUTOTUNE):
   """Shuffle and batch/pack the given dataset."""
 
   def length_filter(max_len):

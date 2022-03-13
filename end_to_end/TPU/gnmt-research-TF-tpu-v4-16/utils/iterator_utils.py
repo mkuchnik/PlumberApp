@@ -17,7 +17,7 @@ from __future__ import print_function
 
 import tensorflow.compat.v1 as tf
 #tf.disable_eager_execution()
-from plumber_analysis import gen_util
+from plumber_analysis import gen_util, annotations
 
 __all__ = ["get_iterator", "get_infer_iterator"]
 
@@ -226,6 +226,7 @@ def get_iterator(src_dataset,
 
 
 # pylint: disable=g-long-lambda,line-too-long
+@annotations.trace_pipeline()
 def get_preprocessed_iterator(dataset_file,
                               batch_size,
                               random_seed,

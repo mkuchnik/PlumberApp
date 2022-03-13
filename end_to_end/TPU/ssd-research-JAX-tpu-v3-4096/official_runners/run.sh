@@ -11,7 +11,7 @@ curr_dir="$(pwd)"
 script_name="$curr_dir/ssd_train.py"
 benchmark_script_name="$curr_dir/benchmark_mlperf.py"
 benchmark_global_opt="--time_limit_s=$time_limit_s --dataset_threadpool_size=48"
-global_opt="--num_epochs=5"
+global_opt="--num_epochs=5 --no_eval=True"
 
 experiment_dir="official_experiments/default_model_48_core_48_thread"
 experiment_prefix="${experiment_dir}/run_0/ssd_train"
@@ -35,7 +35,6 @@ function step_0 {
 	  --validation_file_pattern=$validation_path \
 	  --detailed_time=True \
   	  --precompile_eval=True \
-	  --no_eval=False \
           --read_parallelism=1 \
           --map_parse_parallelism=1 \
           --map_tfrecord_decode_parallelism=1 \
@@ -77,7 +76,6 @@ function step_plumber {
 	  --validation_file_pattern=$validation_path \
 	  --detailed_time=True \
   	  --precompile_eval=True \
-	  --no_eval=False \
           --read_parallelism=1 \
           --map_parse_parallelism=1 \
           --map_tfrecord_decode_parallelism=1 \
@@ -101,7 +99,6 @@ function step_plumber_fake {
 	  --validation_file_pattern=$validation_path \
 	  --detailed_time=True \
   	  --precompile_eval=True \
-	  --no_eval=False \
           --read_parallelism=1 \
           --map_parse_parallelism=1 \
           --map_tfrecord_decode_parallelism=1 \
@@ -144,7 +141,6 @@ function step_autotune {
 	  --validation_file_pattern=$validation_path \
 	  --detailed_time=True \
   	  --precompile_eval=True \
-	  --no_eval=False \
           --read_parallelism=-1 \
           --map_parse_parallelism=-1 \
           --map_tfrecord_decode_parallelism=-1 \
@@ -168,7 +164,6 @@ function step_autotune_benchmark {
 	  --validation_file_pattern=$validation_path \
 	  --detailed_time=True \
   	  --precompile_eval=True \
-	  --no_eval=False \
           --read_parallelism=-1 \
           --map_parse_parallelism=-1 \
           --map_tfrecord_decode_parallelism=-1 \
@@ -192,7 +187,6 @@ function step_heuristic {
 	  --validation_file_pattern=$validation_path \
 	  --detailed_time=True \
   	  --precompile_eval=True \
-	  --no_eval=False \
           --read_parallelism=48 \
           --map_parse_parallelism=48 \
           --map_tfrecord_decode_parallelism=48 \
@@ -201,6 +195,7 @@ function step_heuristic {
           --shard_parallelism=48 \
       ${global_opt} 2>&1 | tee ${name}_log.txt
   cp stats.pb $name.pb
+  popd
 }
 
 function step_heuristic_benchmark {
@@ -217,6 +212,7 @@ function step_heuristic_benchmark {
           --shard_parallelism=48 \
       ${benchmark_global_opt} 2>&1 | tee ${name}_log.txt
   cp stats.pb $name.pb
+  popd
 }
 
 list_python_programs

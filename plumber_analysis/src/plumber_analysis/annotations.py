@@ -196,7 +196,12 @@ def maybe_optimize_pipeline(kwargs_precondition_f=None,
             logging.info("Optimization not enabled! Passing through dataset.")
         return should_optimize
     def wrapped_kwargs_precondition_f(kwargs):
-        return env_variable_optimize_check() and kwargs_precondition_f(kwargs)
+        good_env = env_variable_optimize_check()
+        if kwargs_precondition_f:
+            good_precondition = kwargs_precondition_f(kwargs)
+        else:
+            good_precondition = True
+        return good_env and good_precondition
 
     return _optimize_pipeline(
         kwargs_precondition_f=wrapped_kwargs_precondition_f,

@@ -37,8 +37,6 @@ function step_0 {
 	  --input_pipeline_map_0_parallelism=1 \
 	  --input_pipeline_map_1_parallelism=1 \
           --input_pipeline_default_prefetching=1 \
-	  --input_pipeline_cache=False \
-	  --use_synthetic_data=False \
       ${global_opt} 2>&1 | tee ${name}_log.txt
   cp stats.pb $name.pb
   popd
@@ -58,8 +56,6 @@ function step_0_no_prefetch {
 	  --input_pipeline_map_0_parallelism=1 \
 	  --input_pipeline_map_1_parallelism=1 \
           --input_pipeline_default_prefetching=0 \
-	  --input_pipeline_cache=False \
-	  --use_synthetic_data=False \
       ${global_opt} | tee ${name}_log.txt
   cp stats.pb $name.pb
   popd
@@ -78,9 +74,7 @@ function step_0_benchmark {
     	  --input_pipeline_read_parallelism=1 \
 	  --input_pipeline_map_0_parallelism=1 \
 	  --input_pipeline_map_1_parallelism=1 \
-          --input_pipeline_default_prefetching=1 \
-	  --input_pipeline_cache=False \
-	  --use_synthetic_data=False \
+          --input_pipeline_default_prefetching=0 \
       ${benchmark_global_opt} 2>&1 | tee ${name}_log.txt
   cp stats.pb $name.pb
   popd
@@ -93,13 +87,13 @@ function step_plumber {
   pushd ${experiment_name}
   PLUMBER_NO_OPTIMIZE=True \
   python3 $script_name \
-  	  --data_dir=${data_dir} \
+	  --data_dir=${data_dir} \
 	  --out_dir=${model_dir} \
 	  --use_preprocessed_data=True \
-    	  --input_pipeline_read_parallelism=34 \
-	  --input_pipeline_map_0_parallelism=19 \
+	  --input_pipeline_read_parallelism=47 \
+	  --input_pipeline_map_0_parallelism=20 \
 	  --input_pipeline_map_1_parallelism=9 \
-          --input_pipeline_default_prefetching=14 \
+	  --input_pipeline_default_prefetching=16 \
 	  --input_pipeline_cache=True \
       ${global_opt} 2>&1 | tee ${name}_log.txt
   cp stats.pb $name.pb
@@ -143,6 +137,7 @@ function step_plumber_benchmark {
           --map_tfrecord_decode_parallelism=1 \
           --map_image_postprocessing_parallelism=1 \
           --map_image_transpose_postprocessing_parallelism=1 \
+          --input_pipeline_default_prefetching=0 \
           --shard_parallelism=1 \
       ${benchmark_global_opt} 2>&1 | tee ${name}_log.txt
   cp stats.pb $name.pb
@@ -163,7 +158,6 @@ function step_autotune {
 	  --input_pipeline_map_0_parallelism=-1 \
 	  --input_pipeline_map_1_parallelism=-1 \
           --input_pipeline_default_prefetching=-1 \
-	  --input_pipeline_cache=False \
       ${global_opt} 2>&1 | tee ${name}_log.txt
   cp stats.pb $name.pb
   popd
@@ -207,7 +201,6 @@ function step_heuristic {
 	  --input_pipeline_map_0_parallelism=96 \
 	  --input_pipeline_map_1_parallelism=96 \
           --input_pipeline_default_prefetching=100 \
-	  --input_pipeline_cache=False \
       ${global_opt} 2>&1 | tee ${name}_log.txt
   cp stats.pb $name.pb
   popd
@@ -233,11 +226,18 @@ function step_heuristic_benchmark {
   popd
 }
 
+
+# Get Plumber recommendation with:
+# name="params"
+# python3 get_params.py 2>&1 | tee ${name}_log.txt
+# after tracing pipeline.
+# Alternatively, get parameters by running Plumber benchmark
+
 list_python_programs
 kill_python_programs
 kill_python_programs
 list_python_programs
-step_0
+step_0_no_prefetch
 list_python_programs
 kill_python_programs
 kill_python_programs

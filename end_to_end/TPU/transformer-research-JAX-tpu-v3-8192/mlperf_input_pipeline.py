@@ -19,8 +19,13 @@ import tensorflow.compat.v2 as tf
 
 import plumber_analysis.config
 import plumber_analysis.annotations
+from plumber_analysis import pipeline_optimizer_wrapper as pipeline_optimizer
+from plumber_analysis import pipeline_optimizer as _pipeline_optimizer
 
 plumber_analysis.config.enable_compat_logging()
+
+_pipeline_optimizer.DEFAULT_BENCHMARK_TIME = 60 + 2
+pipeline_optimizer.BENCHMARK_TIME = 60 + 2
 
 # MLPerf Dataset Constants.
 # Packed WMT17 training data.

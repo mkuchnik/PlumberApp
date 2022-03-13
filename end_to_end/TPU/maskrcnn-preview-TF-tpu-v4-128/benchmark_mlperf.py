@@ -5,8 +5,11 @@ import tensorflow as tf
 import tensorflow.compat.v1 as tf1
 #tf1.disable_eager_execution()
 import dataloader
-from plumber_analysis import gen_util
+from plumber_analysis import gen_util, pipeline_optimizer_wrapper, pipeline_optimizer
 import mask_rcnn_params
+
+pipeline_optimizer.DEFAULT_BENCHMARK_TIME = 62
+pipeline_optimizer_wrapper.BENCHMARK_TIME = 62
 
 FLAGS = flags.FLAGS
 

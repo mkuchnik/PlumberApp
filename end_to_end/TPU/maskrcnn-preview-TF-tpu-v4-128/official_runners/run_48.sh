@@ -83,7 +83,7 @@ function step_naive {
 	  --train_batch_size=32 \
 	  --eval_batch_size=32 \
 	  --input_pipeline_default_parallelism=1 \
-	  --input_pipeline_default_prefetching=1 \
+	  --input_pipeline_default_prefetching=0 \
       ${global_opt} 2>&1 | tee ${name}_log.txt
   cp stats.pb $name.pb
   popd
@@ -106,7 +106,7 @@ function step_plumber {
 	  --train_batch_size=32 \
 	  --eval_batch_size=32 \
 	  --input_pipeline_default_parallelism=1 \
-	  --input_pipeline_default_prefetching=1 \
+	  --input_pipeline_default_prefetching=0 \
       ${global_opt} 2>&1 | tee ${name}_log.txt
   cp stats.pb $name.pb
   popd
@@ -217,7 +217,6 @@ function step_autotune_benchmark {
 }
 
 function step_plumber_benchmark {
-  #TODO(mkuchnik): Error piping not working
   name=step_plumber_benchmark
   experiment_name=${experiment_prefix}_${name}
   mkdir -p ${experiment_name}
@@ -231,8 +230,9 @@ function step_plumber_benchmark {
 	  --log_dir=$log_dir \
 	  --train_batch_size=32 \
 	  --eval_batch_size=32 \
-	  ${benchmark_global_opt} | tee -a ${name}_log.txt
-	  #${benchmark_global_opt} 2>&1 | tee -a ${name}_log.txt
+	  --input_pipeline_default_parallelism=1 \
+	  --input_pipeline_default_prefetching=0 \
+      ${benchmark_global_opt} 2>&1 | tee ${name}_log.txt
   cp stats.pb $name.pb
   popd
 }
@@ -277,7 +277,12 @@ function step_naive_benchmark {
   popd
 }
 
-#step_naive_benchmark
+# Get Plumber recommendation with:
+# name="params"
+# python3 get_params.py 2>&1 | tee ${name}_log.txt
+# after tracing pipeline.
+# Alternatively, get parameters by running Plumber benchmark
+
 list_python_programs
 kill_python_programs
 kill_python_programs
